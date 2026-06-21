@@ -4,7 +4,7 @@
 import * as React from "react";
 import { useState } from "react";
 import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
+import { useFirestore } from "@/firebase/firestore/use-firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -21,7 +21,7 @@ interface Subscriber {
 }
 
 export default function SubscribersPage() {
-  const db = useFirestore();
+  const { db, status, error } = useFirestore();
   const { toast } = useToast();
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -47,8 +47,10 @@ export default function SubscribersPage() {
   };
 
   React.useEffect(() => {
-    fetchSubscribers();
-  }, [db, statusFilter, searchTerm]);
+    if (status === 'ready') {
+      fetchSubscribers();
+    }
+  }, [db, status, statusFilter, searchTerm]);
 
   const handleStatusChange = async (id: string, currentStatus: "active" | "inactive") => {
     if (!db) return;
@@ -74,8 +76,16 @@ export default function SubscribersPage() {
     link.setAttribute("download", "subscribers.csv");
     document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
   };
 
+  if (status === 'loading') {
+    return <p>Loading...</p>;
+  }
+
+  if (status === 'error') {
+    return <p>Error: {error?.message}</p>;
+  }
 
   return (
     <Card>

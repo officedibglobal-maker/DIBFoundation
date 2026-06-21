@@ -1,9 +1,17 @@
-
 'use client';
 
-import { useFirebase } from '../client-provider';
+import { useFirebase } from '@/firebase/client-provider';
 
 export function useFirestore() {
-  const { db } = useFirebase();
-  return db;
+  const {
+    db,
+    status,
+    error,
+  } = useFirebase();
+
+  return {
+    db,
+    status,
+    error,
+  };
 }

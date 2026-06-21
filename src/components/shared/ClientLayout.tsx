@@ -7,24 +7,20 @@ import { Toaster } from '@/components/ui/toaster';
 import { AIBotAssistant } from '@/components/ai/AIBotAssistant';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
-import { FirebaseClientProvider } from '@/firebase';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 
-export function ClientLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export function ClientLayout({ children }: { children: React.ReactNode; }) {
   const pathname = usePathname();
   const [mounted, setMounted] = React.useState(false);
+  const isAdminRoute = pathname.startsWith('/admin');
 
-  // Defer rendering of dynamic UI until after hydration
   React.useEffect(() => {
     setMounted(true);
   }, []);
 
   return (
     <FirebaseClientProvider>
-      <Navbar />
+      {!isAdminRoute && <Navbar />}
       <AnimatePresence mode="wait">
         <motion.main
           key={pathname}
@@ -32,13 +28,13 @@ export function ClientLayout({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -12 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="min-h-screen"
+          className={isAdminRoute ? '' : 'min-h-screen'}
         >
           {children}
         </motion.main>
       </AnimatePresence>
-      <Footer />
-      {mounted && <AIBotAssistant />}
+      {!isAdminRoute && <Footer />}
+      {mounted && !isAdminRoute && <AIBotAssistant />}
       <Toaster />
     </FirebaseClientProvider>
   );

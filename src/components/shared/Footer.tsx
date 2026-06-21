@@ -6,20 +6,20 @@ import Link from 'next/link';
 import { Mail, Phone, MapPin, Facebook, Twitter, Instagram, Linkedin, Heart, Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useFirestore } from '@/firebase';
+import { useFirestore } from "@/firebase/firestore/use-firestore";
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
-  const db = useFirestore();
+  const { db, status } = useFirestore();
   const { toast } = useToast();
   const [email, setEmail] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !db || isSubmitting) return;
+    if (!email || status !== 'ready' || !db || isSubmitting) return;
 
     setIsSubmitting(true);
     try {
@@ -107,7 +107,7 @@ export function Footer() {
               <Button 
                 type="submit" 
                 size="icon" 
-                disabled={isSubmitting}
+                disabled={isSubmitting || status !== 'ready'}
                 className="shrink-0"
               >
                 {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}

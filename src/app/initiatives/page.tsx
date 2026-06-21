@@ -2,7 +2,9 @@
 "use client";
 
 import * as React from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore } from '@/firebase/firestore/use-firestore';
+import { useCollection } from '@/firebase/firestore/use-collection';
+import { useMemo } from 'react';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,9 +15,20 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
 export default function InitiativesPage() {
-  const db = useFirestore();
-  const initiativesQuery = useMemoFirebase(() => db ? query(collection(db, 'initiatives'), orderBy('order', 'asc')) : null, [db]);
+  const { db, status, error } = useFirestore();
+  const initiativesQuery = useMemo(() => {
+    if (status !== 'ready' || !db) return null;
+    return query(collection(db, 'initiatives'), orderBy('order', 'asc'));
+  }, [db, status]);
   const { data: initiatives, loading } = useCollection(initiativesQuery);
+
+  if (status === 'loading') {
+    return <p>Loading...</p>;
+  }
+
+  if (status === 'error') {
+    return <p>Error: {error?.message}</p>;
+  }
 
   return (
     <div className="min-h-screen">
@@ -36,18 +49,20 @@ export default function InitiativesPage() {
           />
           
           <div className="space-y-20">
-            {initiatives.map((item, idx) => (
-              <div key={item.id} className={cn("grid grid-cols-1 lg:grid-cols-2 gap-16 items-center", idx % 2 === 1 && "lg:flex-row-reverse")}>
+            {(loading ? Array.from({length: 3}).map((_, i) => ({id: i})) : initiatives).map((item, idx) => {
+              const itemData = item as any;
+              return (
+              <div key={itemData.id} className={cn("grid grid-cols-1 lg:grid-cols-2 gap-16 items-center", idx % 2 === 1 && "lg:flex-row-reverse")}>
                 <div className={cn("space-y-8", idx % 2 === 1 && "lg:order-2")}>
                   <div className="space-y-4">
-                    <span className="text-primary font-bold uppercase tracking-widest text-sm">{item.category}</span>
-                    <h3 className="text-3xl md:text-4xl font-bold text-secondary font-headline">{item.title}</h3>
-                    <p className="text-lg text-muted-foreground leading-relaxed">{item.description}</p>
+                    {loading ? <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div> : <span className="text-primary font-bold uppercase tracking-widest text-sm">{itemData.category}</span>}
+                    {loading ? <div className="h-8 bg-gray-200 rounded w-3/4 animate-pulse"></div> : <h3 className="text-3xl md:text-4xl font-bold text-secondary font-headline">{itemData.title}</h3>}
+                    {loading ? <div className="h-20 bg-gray-200 rounded w-full animate-pulse"></div> : <p className="text-lg text-muted-foreground leading-relaxed">{itemData.description}</p>}
                   </div>
                   
-                  {item.bullets && (
+                  {!loading && itemData.bullets && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {item.bullets.map((bullet: string, i: number) => (
+                      {itemData.bullets.map((bullet: string, i: number) => (
                         <div key={i} className="flex items-center gap-3">
                           <CheckCircle2 className="w-5 h-5 text-accent shrink-0" />
                           <span className="text-secondary font-medium">{bullet}</span>
@@ -56,23 +71,25 @@ export default function InitiativesPage() {
                     </div>
                   )}
 
+                  {loading ? <div className="h-12 bg-gray-200 rounded w-40 animate-pulse"></div> : 
                   <Button asChild className="h-12 px-8 font-bold gap-2">
-                    <Link href={`/initiatives/${item.slug || '#'}`}>
+                    <Link href={`/initiatives/${itemData.slug || '#'}`}>
                       Learn More <ArrowRight className="w-4 h-4" />
                     </Link>
-                  </Button>
+                  </Button>}
                 </div>
                 
                 <div className={cn("relative h-[450px] rounded-3xl overflow-hidden shadow-2xl", idx % 2 === 1 && "lg:order-1")}>
+                  {loading ? <div className="w-full h-full bg-gray-200 animate-pulse"></div> : 
                   <Image 
-                    src={item.imageUrl || `https://picsum.photos/seed/${item.slug || idx}/800/600`} 
-                    alt={item.title} 
+                    src={itemData.imageUrl || `https://picsum.photos/seed/${itemData.slug || idx}/800/600`} 
+                    alt={itemData.title} 
                     fill 
                     className="object-cover"
-                  />
+                  />}
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         </div>
       </section>

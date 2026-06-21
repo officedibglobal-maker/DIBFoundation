@@ -1,11 +1,13 @@
-'use client';
 
-import * as React from 'react';
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 
-export default function NewsletterPage() {
+export default function AdminNewsletterPage() {
   return (
     <div>
-      <h1>Newsletter</h1>
+      <AdminPageHeader title="Newsletter" breadcrumbs={[{ label: "Dashboard", href: "/admin" }, { label: "Newsletter", href: "/admin/newsletter" }]} />
+      <div className="p-4">
+        <p>Newsletter management functionality will be here.</p>
+      </div>
     </div>
   );
 }

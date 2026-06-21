@@ -2,7 +2,9 @@
 "use client";
 
 import * as React from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useMemo } from 'react';
+import { useFirestore } from '@/firebase/firestore/use-firestore';
+import { useCollection } from '@/firebase/firestore/use-collection';
 import { collection, query, where, limit } from 'firebase/firestore';
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,9 +13,22 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 
 export default function ImpactPage() {
-  const db = useFirestore();
-  const storiesQuery = useMemoFirebase(() => db ? query(collection(db, 'impactStories'), where('featured', '==', true), limit(6)) : null, [db]);
-  const { data: stories } = useCollection(storiesQuery);
+  const { db, status, error } = useFirestore();
+  
+  const storiesQuery = useMemo(() => {
+    if (status !== 'ready' || !db) return null;
+    return query(collection(db, 'impactStories'), where('featured', '==', true), limit(6));
+  }, [db, status]);
+
+  const { data: stories, loading } = useCollection(storiesQuery);
+
+  if (status === 'loading') {
+    return <p>Loading...</p>;
+  }
+
+  if (status === 'error') {
+    return <p>Error: {error?.message}</p>;
+  }
 
   return (
     <div className="min-h-screen">
@@ -54,22 +69,23 @@ export default function ImpactPage() {
         <div className="container mx-auto px-4">
           <SectionHeader title="Stories of Impact" subtitle="A collection of narratives highlighting the transformative power of shared responsibility." />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {stories.map((story, i) => (
+            {(loading ? Array.from({length: 6}).map((_, i) => ({id: i})) : stories).map((story, i) => (
               <Card key={story.id || i} className="h-full border-none shadow-lg overflow-hidden flex flex-col group hover:shadow-2xl transition-all duration-500">
                 <div className="relative h-64 overflow-hidden">
+                  {loading ? <div className="w-full h-full bg-muted animate-pulse"></div> :
                   <Image 
-                    src={story.imageUrl || `https://picsum.photos/seed/story-${i}/600/400`} 
-                    alt={story.title} 
+                    src={(story as any).imageUrl || `https://picsum.photos/seed/story-${i}/600/400`} 
+                    alt={(story as any).title} 
                     fill 
                     className="object-cover group-hover:scale-110 transition-transform duration-700"
-                  />
+                  />}
                   <div className="absolute top-4 left-4">
-                    <span className="bg-white/90 px-3 py-1 rounded-full text-xs font-bold text-primary">{story.category}</span>
+                    <span className="bg-white/90 px-3 py-1 rounded-full text-xs font-bold text-primary">{(story as any).category}</span>
                   </div>
                 </div>
                 <CardContent className="p-8 flex-1 space-y-4">
-                  <h4 className="text-xl font-bold text-secondary">{story.title}</h4>
-                  <p className="text-muted-foreground line-clamp-3 leading-relaxed">{story.summary}</p>
+                  <h4 className="text-xl font-bold text-secondary">{(story as any).title}</h4>
+                  <p className="text-muted-foreground line-clamp-3 leading-relaxed">{(story as any).summary}</p>
                   <div className="flex items-center gap-2 text-primary font-bold text-sm cursor-pointer group-hover:gap-3 transition-all">
                     Read full story <ArrowRight className="w-4 h-4" />
                   </div>
@@ -84,7 +100,7 @@ export default function ImpactPage() {
         <div className="container mx-auto px-4">
           <div className="bg-white rounded-3xl shadow-xl overflow-hidden grid grid-cols-1 lg:grid-cols-2">
             <div className="p-12 lg:p-20 space-y-8">
-              <div className="inline-flex items-center gap-2 text-primary font-bold uppercase tracking-widest text-sm">
+              <div className="inline-flex items-center gap-2 text-primary font-bold uppercase tracking-widest text.sm">
                 <FileText className="w-5 h-5" /> Transparency
               </div>
               <h3 className="text-3xl md:text-4xl font-bold text-secondary font-headline">2024 Annual Impact Report</h3>

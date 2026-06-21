@@ -2,20 +2,21 @@
 "use client";
 
 import * as React from 'react';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirestore } from '@/firebase/firestore/use-firestore';
+import { useDoc } from '@/firebase/firestore/use-doc';
 import { doc } from 'firebase/firestore';
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { ShieldCheck, Users, Heart, Lightbulb, TrendingUp, Handshake } from 'lucide-react';
 
 export default function AboutPage() {
-  const db = useFirestore();
+  const { db } = useFirestore();
 
   // About Page Content
-  const aboutRef = useMemoFirebase(() => db ? doc(db, 'heroSections', 'about') : null, [db]);
+  const aboutRef = React.useMemo(() => db ? doc(db, 'heroSections', 'about') : null, [db]);
   const { data: hero } = useDoc(aboutRef);
 
-  const whoWeAreRef = useMemoFirebase(() => db ? doc(db, 'siteContent', 'aboutWhoWeAre') : null, [db]);
+  const whoWeAreRef = React.useMemo(() => db ? doc(db, 'siteContent', 'aboutWhoWeAre') : null, [db]);
   const { data: whoWeAre } = useDoc(whoWeAreRef);
 
   const values = [
@@ -44,7 +45,6 @@ export default function AboutPage() {
             <div className="space-y-6">
               <SectionHeader 
                 title={whoWeAre?.title || "Who We Are"} 
-                alignment="left"
                 subtitle={whoWeAre?.subtitle || "DIBF was established to advance health equity, human dignity, and sustainable development."}
               />
               <p className="text-lg text-muted-foreground leading-relaxed">
@@ -86,7 +86,7 @@ export default function AboutPage() {
 
       <section id="leadership" className="py-24 bg-white">
         <div className="container mx-auto px-4 text-center max-w-4xl space-y-12">
-          <SectionHeader title="Strong Governance. Responsible Stewardship." />
+          <SectionHeader title="Strong Governance. Responsible Stewardship." subtitle="" />
           <p className="text-lg text-muted-foreground">
             DIBF is guided by a committed board and leadership team with diverse expertise in healthcare, development, research, business, and community engagement.
           </p>

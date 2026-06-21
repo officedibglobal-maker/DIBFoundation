@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { useFirestore } from "@/firebase";
+import { useFirestore } from "@/firebase/firestore/use-firestore";
 import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -27,7 +27,7 @@ interface CampaignFormProps {
 }
 
 export function CampaignForm({ campaign, campaignId }: CampaignFormProps) {
-  const db = useFirestore();
+  const { db, status, error } = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
   const form = useForm<z.infer<typeof campaignSchema>>({
@@ -68,6 +68,14 @@ export function CampaignForm({ campaign, campaignId }: CampaignFormProps) {
   const sendCampaign = async () => {
       // This will be implemented in a later step
       alert("Sending functionality to be added!");
+  }
+
+  if (status === "loading") {
+    return <p>Loading...</p>;
+  }
+
+  if (status === "error") {
+    return <p>Error: {error?.message}</p>;
   }
 
   return (

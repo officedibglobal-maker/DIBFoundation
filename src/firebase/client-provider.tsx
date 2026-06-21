@@ -1,56 +1,104 @@
+"use client";
 
-'use client';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import { initializeFirebase, FirebaseServices } from './index';
+import { initializeFirebase } from "./index";
+import type { FirebaseServices } from "./index";
 
-export type FirebaseStatus = 'loading' | 'ready' | 'error';
+export type FirebaseStatus =
+  | "loading"
+  | "ready"
+  | "error";
 
-export interface FirebaseClientContextValue extends Partial<FirebaseServices> {
+export interface FirebaseContextValue {
   status: FirebaseStatus;
+  app: FirebaseServices["app"] | null;
+  auth: FirebaseServices["auth"] | null;
+  db: FirebaseServices["db"] | null;
+  storage: FirebaseServices["storage"] | null;
   error: Error | null;
 }
 
-const FirebaseClientContext = createContext<FirebaseClientContextValue | undefined>(
-  undefined
-);
+const initialValue: FirebaseContextValue = {
+  status: "loading",
+  app: null,
+  auth: null,
+  db: null,
+  storage: null,
+  error: null,
+};
 
-export function FirebaseClientProvider({ children }: { children: React.ReactNode }) {
-  const [contextValue, setContextValue] = useState<FirebaseClientContextValue>({
-    status: 'loading',
-    error: null,
-  });
+export const FirebaseContext =
+  createContext<FirebaseContextValue | null>(null);
+
+export function FirebaseClientProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const [state, setState] =
+    useState<FirebaseContextValue>(initialValue);
 
   useEffect(() => {
+    let active = true;
+
     try {
       const services = initializeFirebase();
-      setContextValue({
-        ...services,
-        status: 'ready',
-        error: null,
-      });
+
+      if (active) {
+        setState({
+          status: "ready",
+          ...services,
+          error: null,
+        });
+      }
     } catch (error) {
-      console.error('Firebase initialization failed in provider:', error);
-      setContextValue({
-        status: 'error',
-        error: error instanceof Error ? error : new Error('Firebase initialization failed'),
-      });
+      if (active) {
+        setState({
+          status: "error",
+          app: null,
+          auth: null,
+          db: null,
+          storage: null,
+          error:
+            error instanceof Error
+              ? error
+              : new Error(
+                  "Unknown Firebase initialization error"
+                ),
+        });
+      }
     }
+
+    return () => {
+      active = false;
+    };
   }, []);
 
-  const memoizedValue = useMemo(() => contextValue, [contextValue]);
+  const value = useMemo(() => state, [state]);
 
   return (
-    <FirebaseClientContext.Provider value={memoizedValue}>
+    <FirebaseContext.Provider value={value}>
       {children}
-    </FirebaseClientContext.Provider>
+    </FirebaseContext.Provider>
   );
 }
 
-export function useFirebase() {
-  const context = useContext(FirebaseClientContext);
-  if (context === undefined) {
-    throw new Error('useFirebase must be used within a FirebaseClientProvider');
+export function useFirebase(): FirebaseContextValue {
+  const context = useContext(FirebaseContext);
+
+  if (!context) {
+    throw new Error(
+      "useFirebase must be used inside FirebaseClientProvider."
+    );
   }
+
   return context;
 }

@@ -1,0 +1,26 @@
+import { z } from 'zod';
+
+export const initiativeSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  slug: z.string().min(1, 'Slug is required'),
+  focusAreaId: z.string().min(1, 'Focus area is required'),
+  summary: z.string().min(1, 'Summary is required'),
+  body: z.string().optional(),
+  objectives: z.array(z.string()).optional(),
+  locations: z.array(z.string()).optional(),
+  beneficiaryDescription: z.string().optional(),
+  startDate: z.date().optional(),
+  endDate: z.date().optional(),
+  ongoing: z.boolean().optional(),
+  imageUrl: z.string().url().optional(),
+  imageAlt: z.string().optional(),
+  galleryUrls: z.array(z.string().url()).optional(),
+  featured: z.boolean().optional(),
+  status: z.enum(['draft', 'published', 'archived']).optional(),
+  order: z.number().int().optional(),
+  peopleReached: z.number().int().optional(),
+  communitiesReached: z.number().int().optional(),
+  publishedAt: z.date().optional(),
+  createdBy: z.string().optional(),
+  updatedBy: z.string().optional(),
+});

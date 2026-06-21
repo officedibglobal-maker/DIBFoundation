@@ -8,56 +8,95 @@ import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useFirestore } from '@/firebase/firestore/use-firestore';
+import { getDocuments } from '@/lib/firestore/crud';
+import { COLLECTIONS } from '@/lib/firestore/collections';
+import { Skeleton } from '@/components/ui/skeleton';
+import { HeroSlide } from '@/types/firestore';
 
-interface HeroSlide {
-  id?: string;
-  eyebrow?: string;
-  heading?: string;
-  body?: string;
-  imageUrl?: string;
-  primaryCTA?: string;
-  primaryLink?: string;
-  secondaryCTA?: string;
-  secondaryLink?: string;
-}
-
-interface HeroProps {
-  slides?: HeroSlide[];
-}
-
-export function Hero({ slides }: HeroProps) {
+export function Hero() {
+  const { db, status } = useFirestore();
+  const [slides, setSlides] = React.useState<HeroSlide[]>([]);
+  const [loading, setLoading] = React.useState(true);
   const [currentIndex, setCurrentIndex] = React.useState(0);
   const [isPaused, setIsPaused] = React.useState(false);
 
   const defaultSlides: HeroSlide[] = [
     {
-      eyebrow: "Advancing Health. Human Dignity. Sustainable Development.",
-      heading: "Creating Pathways. Transforming Lives. Building Stronger Communities.",
+      title: "Creating Pathways. Transforming Lives. Building Stronger Communities.",
+      subtitle: "Advancing Health. Human Dignity. Sustainable Development.",
       body: "DIBF advances health equity, community wellbeing, youth empowerment, and sustainable development across Africa and underserved communities worldwide.",
       imageUrl: "https://picsum.photos/seed/dibf-hero-default/1920/1080",
-      primaryCTA: "Support Our Work",
-      primaryLink: "/get-involved",
-      secondaryCTA: "Explore Initiatives",
-      secondaryLink: "/initiatives"
+      primaryCtaLabel: "Support Our Work",
+      primaryCtaHref: "/get-involved",
+      secondaryCtaLabel: "Explore Initiatives",
+      secondaryCtaHref: "/initiatives",
+      order: 1,
+      status: "published",
     }
   ];
 
-  const data = slides && slides.length > 0 ? slides : defaultSlides;
+  React.useEffect(() => {
+    async function fetchSlides() {
+      if (status === 'ready' && db) {
+        try {
+          const fetchedSlides = await getDocuments<HeroSlide>(db, COLLECTIONS.heroSlides);
+          setSlides(fetchedSlides.length > 0 ? fetchedSlides : defaultSlides);
+        } catch (error) { 
+          console.error("Error fetching hero slides:", error);
+          setSlides(defaultSlides);
+        } finally {
+          setLoading(false);
+        }
+      }
+    }
+    fetchSlides();
+  }, [db, status, defaultSlides]);
+
+  const data = slides;
 
   React.useEffect(() => {
     if (data.length <= 1 || isPaused) return;
 
     const timer = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % data.length);
-    }, 6000); // 6 seconds interval
+    }, 6000);
 
     return () => clearInterval(timer);
   }, [data.length, isPaused]);
+
+  if (loading || status !== 'ready') {
+    return (
+      <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-secondary">
+          <Skeleton className="absolute inset-0 z-0 w-full h-full" />
+        <div className="container mx-auto px-4 relative z-10 pt-20">
+          <div className="max-w-4xl space-y-8">
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                    <Skeleton className="h-4 w-[250px]" />
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-3/4" />
+                  </div>
+                  <Skeleton className="h-8 w-1/2" />
+                  <div className="flex flex-wrap gap-4 pt-4">
+                    <Skeleton className="h-14 w-40" />
+                    <Skeleton className="h-14 w-40" />
+                  </div>
+                </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   const handleNext = () => setCurrentIndex((prev) => (prev + 1) % data.length);
   const handlePrev = () => setCurrentIndex((prev) => (prev - 1 + data.length) % data.length);
 
   const currentSlide = data[currentIndex];
+  const primaryCtaLabel = currentSlide.primaryCtaLabel || currentSlide.ctaText || "Learn More";
+  const primaryCtaHref = currentSlide.primaryCtaHref || currentSlide.ctaUrl || "/get-involved";
+  const secondaryCtaLabel = currentSlide.secondaryCtaLabel || "Explore Initiatives";
+  const secondaryCtaHref = currentSlide.secondaryCtaHref || "/initiatives";
 
   return (
     <section 
@@ -76,7 +115,7 @@ export function Hero({ slides }: HeroProps) {
         >
           <Image
             src={currentSlide.imageUrl || "https://picsum.photos/seed/dibf-placeholder/1920/1080"}
-            alt={currentSlide.heading || "DIBF"}
+            alt={currentSlide.imageAlt || currentSlide.title || "DIBF"}
             fill
             className="object-cover opacity-60"
             priority
@@ -99,11 +138,11 @@ export function Hero({ slides }: HeroProps) {
             >
               <div className="space-y-4">
                 <span className="text-accent font-bold uppercase tracking-[0.2em] text-sm block">
-                  {currentSlide.eyebrow}
+                  {currentSlide.subtitle}
                 </span>
                 
                 <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-[1.05] font-headline">
-                  {currentSlide.heading}
+                  {currentSlide.title}
                 </h1>
               </div>
               
@@ -112,17 +151,17 @@ export function Hero({ slides }: HeroProps) {
               </p>
 
               <div className="flex flex-wrap gap-4 pt-4">
-                {currentSlide.primaryCTA && (
+                {primaryCtaLabel && (
                   <Button asChild size="lg" className="h-14 px-10 text-lg font-bold shadow-2xl bg-accent hover:bg-accent/90 rounded-full transition-all">
-                    <Link href={currentSlide.primaryLink || "/get-involved"}>
-                      {currentSlide.primaryCTA}
+                    <Link href={primaryCtaHref}>
+                      {primaryCtaLabel}
                     </Link>
                   </Button>
                 )}
-                {currentSlide.secondaryCTA && (
+                {secondaryCtaLabel && (
                   <Button asChild variant="outline" size="lg" className="h-14 px-10 text-lg font-bold border-white/30 text-white hover:bg-white/10 rounded-full transition-all gap-2">
-                    <Link href={currentSlide.secondaryLink || "/initiatives"}>
-                      {currentSlide.secondaryCTA} <ChevronRight className="w-5 h-5" />
+                    <Link href={secondaryCtaHref}>
+                      {secondaryCtaLabel} <ChevronRight className="w-5 h-5" />
                     </Link>
                   </Button>
                 )}
@@ -132,7 +171,6 @@ export function Hero({ slides }: HeroProps) {
         </div>
       </div>
 
-      {/* Slide Indicators & Controls */}
       {data.length > 1 && (
         <>
           <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-4 z-20">

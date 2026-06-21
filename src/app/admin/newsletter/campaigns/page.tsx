@@ -4,7 +4,7 @@
 import * as React from "react";
 import { useState, useEffect } from "react";
 import { collection, getDocs, query, orderBy } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
+import { useFirestore } from "@/firebase/firestore/use-firestore";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,19 +22,29 @@ interface Campaign {
 }
 
 export default function CampaignsPage() {
-  const db = useFirestore();
+  const { db, status, error } = useFirestore();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
 
-  const fetchCampaigns = async () => {
-    if (!db) return;
-    const q = query(collection(db, "newsletterCampaigns"), orderBy("createdAt", "desc"));
-    const querySnapshot = await getDocs(q);
-    setCampaigns(querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Campaign)));
-  };
-
   useEffect(() => {
-    fetchCampaigns();
-  }, [db]);
+    const fetchCampaigns = async () => {
+      if (!db) return;
+      const q = query(collection(db, "newsletterCampaigns"), orderBy("createdAt", "desc"));
+      const querySnapshot = await getDocs(q);
+      setCampaigns(querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Campaign)));
+    };
+
+    if (status === 'ready') {
+      fetchCampaigns();
+    }
+  }, [db, status]);
+
+  if (status === 'loading') {
+    return <p>Loading...</p>;
+  }
+
+  if (status === 'error') {
+    return <p>Error: {error?.message}</p>;
+  }
 
   return (
     <Card>

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Query,
   onSnapshot,
@@ -70,9 +70,4 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
   }, [db, query, status]);
 
   return { data, loading, error };
-}
-
-export function useMemoFirebase<T>(factory: () => T, deps: any[]): T {
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(factory, deps);
 }

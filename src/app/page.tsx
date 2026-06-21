@@ -1,58 +1,27 @@
 
-"use client";
-
-import * as React from 'react';
-import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc, query, where, limit, orderBy } from 'firebase/firestore';
 import { Hero } from '@/components/home/Hero';
 import { FeaturedStory } from '@/components/home/FeaturedStory';
 import { WhatWeDoGrid } from '@/components/home/WhatWeDoGrid';
 import { ImpactStats } from '@/components/home/ImpactStats';
 import { SectionHeader } from '@/components/shared/SectionHeader';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight, ShoppingBag, Handshake, Heart, ShieldCheck } from 'lucide-react';
+import { getDocuments } from '@/lib/firestore/server';
+import { COLLECTIONS } from '@/lib/firestore/collections';
+import { Initiative, Stat } from '@/types/firestore';
+import { orderBy } from 'firebase/firestore';
 
-export default function HomePage() {
-  const db = useFirestore();
-
-  // Hero Slides
-  const heroSlidesQuery = useMemoFirebase(() => db ? query(collection(db, 'heroSlides'), orderBy('order', 'asc')) : null, [db]);
-  const { data: heroSlides } = useCollection(heroSlidesQuery);
-
-  // Featured Story
-  const storyQuery = useMemoFirebase(() => db ? query(collection(db, 'impactStories'), where('featured', '==', true), limit(1)) : null, [db]);
-  const { data: featuredStories } = useCollection(storyQuery);
-  const featuredStory = featuredStories?.[0];
-
-  // Initiatives
-  const initiativesQuery = useMemoFirebase(() => db ? query(collection(db, 'initiatives'), orderBy('order', 'asc'), limit(4)) : null, [db]);
-  const { data: initiatives } = useCollection(initiativesQuery);
-
-  // Focus Areas
-  const focusAreasQuery = useMemoFirebase(() => db ? query(collection(db, 'focusAreas'), orderBy('order', 'asc'), limit(4)) : null, [db]);
-  const { data: focusAreas } = useCollection(focusAreasQuery);
-
-  // Stats
-  const statsQuery = useMemoFirebase(() => db ? query(collection(db, 'impactStats'), orderBy('order', 'asc')) : null, [db]);
-  const { data: stats } = useCollection(statsQuery);
-
-  // Site Content (Partnership & Store Teaser)
-  const partnershipContentRef = useMemoFirebase(() => db ? doc(db, 'siteContent', 'partnership') : null, [db]);
-  const { data: partnershipContent } = useDoc(partnershipContentRef);
-
-  const storeTeaserContentRef = useMemoFirebase(() => db ? doc(db, 'siteContent', 'storeTeaser') : null, [db]);
-  const { data: storeTeaserContent } = useDoc(storeTeaserContentRef);
+export default async function HomePage() {
+  const initiatives = await getDocuments<Initiative>(COLLECTIONS.initiatives, [orderBy("order", "asc")]);
+  const stats = await getDocuments<Stat>(COLLECTIONS.impactStats, [orderBy("order", "asc")]);
 
   return (
     <div className="space-y-0">
-      <Hero slides={heroSlides} />
-
-      <FeaturedStory story={featuredStory} />
-
-      <WhatWeDoGrid focusAreas={focusAreas} />
+      <Hero />
+      <FeaturedStory />
+      <WhatWeDoGrid />
 
       <section className="py-24 bg-muted/30">
         <div className="container mx-auto px-4">
@@ -64,13 +33,12 @@ export default function HomePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {initiatives.map((item, idx) => (
               <Link href="/initiatives" key={item.id || idx} className="group h-full">
-                <Card className="h-full border-none shadow-lg group-hover:shadow-2xl transition-all duration-500 overflow-hidden flex flex-col relative min-h-[400px]">
+                <div className="h-full border-none shadow-lg group-hover:shadow-2xl transition-all duration-500 overflow-hidden flex flex-col relative min-h-[400px] rounded-lg">
                   <Image 
                     src={item.imageUrl || `https://picsum.photos/seed/init-${idx}/600/800`} 
                     alt={item.title} 
                     fill 
                     className="object-cover group-hover:scale-110 transition-transform duration-700"
-                    data-ai-hint="foundation project"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-secondary via-secondary/20 to-transparent" />
                   <div className="absolute bottom-0 left-0 p-6 space-y-2 text-white w-full">
@@ -84,7 +52,7 @@ export default function HomePage() {
                       </div>
                     </div>
                   </div>
-                </Card>
+                </div>
               </Link>
             ))}
           </div>
@@ -105,10 +73,10 @@ export default function HomePage() {
             <div className="space-y-8 order-2 lg:order-1">
               <div className="space-y-4">
                 <h2 className="text-3xl md:text-5xl font-bold text-secondary font-headline leading-tight">
-                  {partnershipContent?.title || "Stronger Together. Greater Impact."}
+                  Stronger Together. Greater Impact.
                 </h2>
                 <p className="text-lg text-muted-foreground leading-relaxed max-w-xl">
-                  {partnershipContent?.description || "We believe meaningful change happens through collaboration. Partner with us to build healthier, more resilient communities across the globe."}
+                  We believe meaningful change happens through collaboration. Partner with us to build healthier, more resilient communities across the globe.
                 </p>
               </div>
               <Button asChild size="lg" className="h-14 px-10 font-bold bg-primary rounded-full gap-2">
@@ -119,11 +87,10 @@ export default function HomePage() {
             </div>
             <div className="relative h-[400px] lg:h-[500px] rounded-3xl overflow-hidden shadow-2xl order-1 lg:order-2">
               <Image 
-                src={partnershipContent?.imageUrl || "https://picsum.photos/seed/partnership-home/800/600"} 
+                src="https://picsum.photos/seed/partnership-home/800/600" 
                 alt="Partnership" 
                 fill 
                 className="object-cover"
-                data-ai-hint="people hands"
               />
             </div>
           </div>
@@ -135,21 +102,20 @@ export default function HomePage() {
           <div className="bg-white rounded-[2.5rem] shadow-xl overflow-hidden grid grid-cols-1 lg:grid-cols-2 items-center">
             <div className="relative h-[400px] lg:h-full">
               <Image 
-                src={storeTeaserContent?.imageUrl || "https://picsum.photos/seed/store-teaser/800/800"} 
+                src="https://picsum.photos/seed/store-teaser/800/800" 
                 alt="Impact Store" 
                 fill 
                 className="object-cover"
-                data-ai-hint="lifestyle products"
               />
             </div>
             <div className="p-12 lg:p-20 space-y-8">
               <div className="space-y-4">
                 <span className="text-accent font-bold uppercase tracking-widest text-xs">DIBF Impact Store</span>
                 <h2 className="text-3xl md:text-5xl font-bold text-secondary font-headline">
-                  {storeTeaserContent?.title || "Shop With Purpose."}
+                  Shop With Purpose.
                 </h2>
                 <p className="text-lg text-muted-foreground leading-relaxed">
-                  {storeTeaserContent?.description || "Every purchase supports initiatives that advance health, promote wellbeing, and create opportunities for lasting impact."}
+                  Every purchase supports initiatives that advance health, promote wellbeing, and create opportunities for lasting impact.
                 </p>
               </div>
               <Button asChild size="lg" className="h-14 px-10 font-bold bg-secondary rounded-full gap-2">

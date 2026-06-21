@@ -90,7 +90,6 @@ export default function PartnershipsPage() {
              <div className="space-y-8">
                 <SectionHeader 
                   title="The DIBF Advantage" 
-                  alignment="left"
                   subtitle="Why leading institutions choose DIBF as their African social impact partner."
                 />
                 <div className="space-y-6">

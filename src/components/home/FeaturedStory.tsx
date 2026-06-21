@@ -1,17 +1,136 @@
-
 "use client";
 
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useFirestore } from '@/firebase/firestore/use-firestore';
+import { getDocuments } from '@/lib/firestore/crud';
+import { COLLECTIONS } from '@/lib/firestore/collections';
+import { ImpactStory } from '@/types/firestore';
+import { useEffect, useState } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { FirebaseError } from 'firebase/app';
 
-interface FeaturedStoryProps {
-  story?: any;
+function FeaturedStorySkeleton() {
+    return (
+        <section className="py-24 bg-white">
+            <div className="container mx-auto px-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                    <Skeleton className="relative h-[400px] md:h-[500px] rounded-2xl" />
+                    <div className="space-y-6">
+                        <div className="space-y-2">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-10 w-full" />
+                            <Skeleton className="h-10 w-3/4" />
+                        </div>
+                        <Skeleton className="h-24 w-full" />
+                        <Skeleton className="h-8 w-48" />
+                    </div>
+                </div>
+            </div>
+        </section>
+    );
 }
 
-export function FeaturedStory({ story }: FeaturedStoryProps) {
-  if (!story) return null;
+function FeaturedStoryFallback({ error }: { error: Error | FirebaseError }) {
+    return (
+        <section className="py-24 bg-white">
+            <div className="container mx-auto px-4">
+                <h2>Error Loading Featured Story</h2>
+                <p>{error.message}</p>
+            </div>
+        </section>
+    );
+}
+
+
+export function FeaturedStory() {
+  const { db, status, error } = useFirestore();
+  const [story, setStory] = useState<ImpactStory | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    if (status !== "ready" || !db) {
+      if (status === 'ready' && !db) {
+        setLoading(false);
+      }
+      return;
+    }
+
+    const firestore = db;
+    let active = true;
+
+    async function loadFeaturedStory() {
+      try {
+        const stories = await getDocuments<ImpactStory>(
+          firestore,
+          COLLECTIONS.impactStories
+        );
+
+        if (!active) {
+          return;
+        }
+
+        const featured =
+          stories.find(
+            (story) =>
+              story.featured === true &&
+              story.status === "published"
+          ) ??
+          stories.find(
+            (story) => story.status === "published"
+          ) ??
+          null;
+
+        setStory(featured);
+      } catch (loadError) {
+        if (active) {
+          setLoadError(
+            loadError instanceof Error
+              ? loadError
+              : new Error(
+                  "Unable to load the featured story."
+                )
+          );
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadFeaturedStory();
+
+    return () => {
+      active = false;
+    };
+  }, [db, status]);
+
+  if (status === "loading" || loading) {
+    return <FeaturedStorySkeleton />;
+  }
+
+  if (status === "error") {
+    return (
+      <FeaturedStoryFallback
+        error={
+          error ??
+          new Error("Firebase initialization failed.")
+        }
+      />
+    );
+  }
+
+  if (loadError) {
+    return <FeaturedStoryFallback error={loadError} />;
+  }
+  
+  if (!story) {
+      return null;
+  }
 
   return (
     <section className="py-24 bg-white">
@@ -45,7 +164,7 @@ export function FeaturedStory({ story }: FeaturedStoryProps) {
               </h2>
             </div>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              {story.summary || story.excerpt}
+              {story.excerpt || story.summary}
             </p>
             <Link 
               href={`/impact`}

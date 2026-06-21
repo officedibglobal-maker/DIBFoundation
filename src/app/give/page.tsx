@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useFirestore } from '@/firebase';
+import { useFirestore } from '@/firebase/firestore/use-firestore';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -29,7 +30,7 @@ const DonationSchema = z.object({
 });
 
 export default function GivePage() {
-  const db = useFirestore();
+  const { db, status, error } = useFirestore();
   const { toast } = useToast();
   const form = useForm<z.infer<typeof DonationSchema>>({
     resolver: zodResolver(DonationSchema),
@@ -37,7 +38,10 @@ export default function GivePage() {
   });
 
   async function onSubmit(values: z.infer<typeof DonationSchema>) {
-    if (!db) return;
+    if (status !== 'ready' || !db) {
+        toast({ variant: "destructive", title: "Error", description: "Database not ready. Please try again." });
+        return;
+    };
     try {
       await addDoc(collection(db, 'donations'), {
         ...values,
@@ -49,6 +53,14 @@ export default function GivePage() {
     } catch (e) {
       toast({ variant: "destructive", title: "Error", description: "Failed to record donation. Please try again." });
     }
+  }
+
+  if (status === 'loading') {
+    return <p>Loading...</p>;
+  }
+
+  if (status === 'error') {
+    return <p>Error: {error?.message}</p>;
   }
 
   return (
@@ -69,7 +81,6 @@ export default function GivePage() {
             <div className="space-y-8">
               <SectionHeader 
                 title="Choose Your Support Path" 
-                alignment="left"
                 subtitle="Select a giving level that resonates with your vision for global health equity."
               />
               
@@ -138,7 +149,7 @@ export default function GivePage() {
                       </FormItem>
                     )} />
 
-                    <Button type="submit" className="w-full h-14 font-bold text-lg gap-2 shadow-lg">
+                    <Button type="submit" className="w-full h-14 font-bold text-lg gap-2 shadow-lg" disabled={status !== 'ready'}>
                       <Heart className="w-5 h-5" />
                       Complete Donation
                     </Button>

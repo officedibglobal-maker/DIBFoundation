@@ -2,7 +2,9 @@
 'use client';
 
 import * as React from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore } from '@/firebase/firestore/use-firestore';
+import { useCollection } from '@/firebase/firestore/use-collection';
+import { useMemo } from 'react';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,10 +18,14 @@ import { useCart } from '@/hooks/use-cart';
 import { Input } from '@/components/ui/input';
 
 export default function ImpactStorePage() {
-  const db = useFirestore();
+  const { db, status, error } = useFirestore();
   const addItem = useCart((state) => state.addItem);
   
-  const storeQuery = useMemoFirebase(() => db ? query(collection(db, 'impactStore'), orderBy('order', 'asc')) : null, [db]);
+  const storeQuery = useMemo(() => {
+    if (status !== 'ready' || !db) return null;
+    return query(collection(db, 'impactStore'), orderBy('order', 'asc'));
+  }, [db, status]);
+
   const { data: items, loading } = useCollection(storeQuery);
 
   const [activeCategory, setActiveCategory] = React.useState('All');
@@ -35,9 +41,10 @@ export default function ImpactStorePage() {
   ];
 
   const filteredItems = items.filter(item => {
-    const matchesCategory = activeCategory === 'All' || item.category === activeCategory;
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          item.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const itemData = item as any;
+    const matchesCategory = activeCategory === 'All' || itemData.category === activeCategory;
+    const matchesSearch = itemData.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          itemData.description.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
@@ -49,6 +56,14 @@ export default function ImpactStorePage() {
     "Sustainable giving efforts",
     "Humanitarian programs"
   ];
+
+  if (status === 'loading') {
+    return <p>Loading...</p>;
+  }
+
+  if (status === 'error') {
+    return <p>Error: {error?.message}</p>;
+  }
 
   return (
     <div className="min-h-screen">
@@ -121,57 +136,60 @@ export default function ImpactStorePage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-              {filteredItems.map((item, idx) => (
-                <RevealItem key={item.id || idx}>
-                  <Card className="group h-full flex flex-col border-none shadow-lg hover:shadow-2xl transition-all duration-500 rounded-2xl overflow-hidden bg-white">
-                    <div className="relative h-64 overflow-hidden bg-muted">
-                      <Image 
-                        src={item.imageUrl || "https://picsum.photos/seed/dibf-product/600/600"} 
-                        alt={item.title} 
-                        fill 
-                        className="object-cover group-hover:scale-110 transition-transform duration-700"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                      />
-                      <div className="absolute top-4 left-4">
-                        <Badge className="bg-primary/90 text-white backdrop-blur-sm shadow-sm">{item.category}</Badge>
-                      </div>
-                    </div>
-                    <CardHeader className="p-6 pb-2">
-                      <div className="flex justify-between items-start gap-2">
-                        <CardTitle className="text-lg font-bold text-secondary line-clamp-1 group-hover:text-primary transition-colors">{item.title}</CardTitle>
-                        <span className="font-bold text-primary shrink-0">{item.price}</span>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-6 pt-0 flex-1 space-y-4">
-                      <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed h-10">
-                        {item.description}
-                      </p>
-                      <div className="bg-accent/5 p-3 rounded-xl flex gap-3 items-start border border-accent/10">
-                        <Sparkles className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                        <div className="text-[11px] font-bold text-accent-foreground leading-tight uppercase tracking-wider">
-                          <span className="opacity-60 block mb-0.5">Impact Note:</span>
-                          {item.impactNote}
+              {filteredItems.map((item, idx) => {
+                const itemData = item as any;
+                return (
+                  <RevealItem key={itemData.id || idx}>
+                    <Card className="group h-full flex flex-col border-none shadow-lg hover:shadow-2xl transition-all duration-500 rounded-2xl overflow-hidden bg-white">
+                      <div className="relative h-64 overflow-hidden bg-muted">
+                        <Image 
+                          src={itemData.imageUrl || "https://picsum.photos/seed/dibf-product/600/600"} 
+                          alt={itemData.title} 
+                          fill 
+                          className="object-cover group-hover:scale-110 transition-transform duration-700"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                        />
+                        <div className="absolute top-4 left-4">
+                          <Badge className="bg-primary/90 text-white backdrop-blur-sm shadow-sm">{itemData.category}</Badge>
                         </div>
                       </div>
-                    </CardContent>
-                    <CardFooter className="p-6 pt-0">
-                      <Button 
-                        onClick={() => addItem({
-                          id: item.id,
-                          title: item.title,
-                          price: item.price,
-                          imageUrl: item.imageUrl,
-                          quantity: 1
-                        })}
-                        className="w-full gap-2 font-bold shadow-md hover:scale-[1.02] active:scale-95 transition-all"
-                      >
-                        <ShoppingBag className="w-4 h-4" />
-                        Add to Cart
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                </RevealItem>
-              ))}
+                      <CardHeader className="p-6 pb-2">
+                        <div className="flex justify-between items-start gap-2">
+                          <CardTitle className="text-lg font-bold text-secondary line-clamp-1 group-hover:text-primary transition-colors">{itemData.title}</CardTitle>
+                          <span className="font-bold text-primary shrink-0">{itemData.price}</span>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-6 pt-0 flex-1 space-y-4">
+                        <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed h-10">
+                          {itemData.description}
+                        </p>
+                        <div className="bg-accent/5 p-3 rounded-xl flex gap-3 items-start border border-accent/10">
+                          <Sparkles className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                          <div className="text-[11px] font-bold text-accent-foreground leading-tight uppercase tracking-wider">
+                            <span className="opacity-60 block mb-0.5">Impact Note:</span>
+                            {itemData.impactNote}
+                          </div>
+                        </div>
+                      </CardContent>
+                      <CardFooter className="p-6 pt-0">
+                        <Button 
+                          onClick={() => addItem({
+                            id: itemData.id,
+                            title: itemData.title,
+                            price: itemData.price,
+                            imageUrl: itemData.imageUrl,
+                            quantity: 1
+                          })}
+                          className="w-full gap-2 font-bold shadow-md hover:scale-[1.02] active:scale-95 transition-all"
+                        >
+                          <ShoppingBag className="w-4 h-4" />
+                          Add to Cart
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  </RevealItem>
+                )}
+              )}
             </div>
           )}
         </div>

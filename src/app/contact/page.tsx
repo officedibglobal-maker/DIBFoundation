@@ -18,7 +18,7 @@ import { useCart } from '@/hooks/use-cart';
 import { Separator } from '@/components/ui/separator';
 import Image from 'next/image';
 import { addDoc, collection, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
+import { useFirestore } from '@/firebase/firestore/use-firestore';
 
 const ContactSchema = z.object({
   name: z.string().min(2, "Full name is required"),
@@ -35,7 +35,7 @@ const NewsletterSchema = z.object({
 
 function NewsletterSubscriptionForm() {
   const { toast } = useToast();
-  const db = useFirestore();
+  const { db, status } = useFirestore();
 
   const form = useForm<z.infer<typeof NewsletterSchema>>({
     resolver: zodResolver(NewsletterSchema),
@@ -45,7 +45,14 @@ function NewsletterSubscriptionForm() {
   });
 
   async function onSubmit(data: z.infer<typeof NewsletterSchema>) {
-    if (!db) return;
+    if (status !== 'ready' || !db) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Database not ready, please try again."
+        });
+        return;
+    };
     try {
       // Check for existing subscriber
       const q = query(collection(db, "newsletterSubscribers"), where("email", "==", data.email));
@@ -104,7 +111,7 @@ function NewsletterSubscriptionForm() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="font-bold">
+                <Button type="submit" className="font-bold" disabled={status !== 'ready'}>
                   Subscribe
                 </Button>
               </form>
@@ -117,7 +124,7 @@ function NewsletterSubscriptionForm() {
 
 function ContactForm() {
   const { toast } = useToast();
-  const db = useFirestore();
+  const { db, status } = useFirestore();
   const searchParams = useSearchParams();
   const { items, clearCart, totalPrice } = useCart();
   const isStoreInquiry = searchParams.get('type') === 'store-inquiry';
@@ -137,7 +144,14 @@ function ContactForm() {
   });
 
   async function onSubmit(data: z.infer<typeof ContactSchema>) {
-    if (!db) return;
+    if (status !== 'ready' || !db) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Database not ready, please try again."
+        });
+        return;
+    };
     try {
       await addDoc(collection(db, 'contactMessages'), {
         ...data,
@@ -270,7 +284,7 @@ function ContactForm() {
                     </FormItem>
                   )} />
 
-                  <Button type="submit" className="w-full h-14 font-bold text-lg gap-2">
+                  <Button type="submit" className="w-full h-14 font-bold text-lg gap-2" disabled={status !== 'ready'}>
                     <Send className="w-5 h-5" />
                     Submit Inquiry
                   </Button>

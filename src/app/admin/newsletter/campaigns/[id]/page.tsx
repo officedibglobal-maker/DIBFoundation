@@ -2,16 +2,16 @@
 "use client";
 
 import { CampaignForm } from "../CampaignForm";
-import { useFirestore } from "@/firebase";
+import { useFirestore } from "@/firebase/firestore/use-firestore";
 import { doc, getDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 
 export default function EditCampaignPage({ params }: { params: { id: string } }) {
-  const db = useFirestore();
+  const { db, status, error } = useFirestore();
   const [campaign, setCampaign] = useState(null);
 
   useEffect(() => {
-    if (!db) return;
+    if (status !== 'ready' || !db) return;
     const fetchCampaign = async () => {
       const campaignRef = doc(db, "newsletterCampaigns", params.id);
       const campaignSnap = await getDoc(campaignRef);
@@ -23,10 +23,14 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
     };
 
     fetchCampaign();
-  }, [db, params.id]);
+  }, [db, params.id, status]);
 
-  if (!campaign) {
+  if (status === 'loading' || !campaign) {
     return <div>Loading...</div>;
+  }
+
+  if (status === 'error') {
+    return <div>Error: {error?.message}</div>;
   }
 
   return <CampaignForm campaign={campaign} campaignId={params.id} />;
