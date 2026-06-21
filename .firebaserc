@@ -1,6 +1,11 @@
 
 {
   "projects": {
-    "default": "surpriseme-6c1c3"
+    "default": "codelab-38202"
+  },
+  "apphosting": {
+    "backends": [
+      "codelab-app-hosting"
+    ]
   }
 }

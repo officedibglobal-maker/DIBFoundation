@@ -1,39 +1,56 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { initializeFirebase } from './index';
-import { FirebaseProvider } from './provider';
-import { FirebaseApp } from 'firebase/app';
-import { Firestore } from 'firebase/firestore';
-import { Auth } from 'firebase/auth';
-import { FirebaseStorage } from 'firebase/storage';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import { initializeFirebase, FirebaseServices } from './index';
 
-/**
- * Ensures Firebase is initialized only once on the client and handles SSR safely.
- */
+export type FirebaseStatus = 'loading' | 'ready' | 'error';
+
+export interface FirebaseClientContextValue extends Partial<FirebaseServices> {
+  status: FirebaseStatus;
+  error: Error | null;
+}
+
+const FirebaseClientContext = createContext<FirebaseClientContextValue | undefined>(
+  undefined
+);
+
 export function FirebaseClientProvider({ children }: { children: React.ReactNode }) {
-  const [firebase, setFirebase] = useState<{
-    app: FirebaseApp | null;
-    db: Firestore | null;
-    auth: Auth | null;
-    storage: FirebaseStorage | null;
-  }>({ app: null, db: null, auth: null, storage: null });
+  const [contextValue, setContextValue] = useState<FirebaseClientContextValue>({
+    status: 'loading',
+    error: null,
+  });
 
   useEffect(() => {
-    // Only initialize on the client
-    const instances = initializeFirebase();
-    setFirebase(instances);
+    try {
+      const services = initializeFirebase();
+      setContextValue({
+        ...services,
+        status: 'ready',
+        error: null,
+      });
+    } catch (error) {
+      console.error('Firebase initialization failed in provider:', error);
+      setContextValue({
+        status: 'error',
+        error: error instanceof Error ? error : new Error('Firebase initialization failed'),
+      });
+    }
   }, []);
 
+  const memoizedValue = useMemo(() => contextValue, [contextValue]);
+
   return (
-    <FirebaseProvider 
-      app={firebase.app} 
-      db={firebase.db} 
-      auth={firebase.auth} 
-      storage={firebase.storage}
-    >
+    <FirebaseClientContext.Provider value={memoizedValue}>
       {children}
-    </FirebaseProvider>
+    </FirebaseClientContext.Provider>
   );
+}
+
+export function useFirebase() {
+  const context = useContext(FirebaseClientContext);
+  if (context === undefined) {
+    throw new Error('useFirebase must be used within a FirebaseClientProvider');
+  }
+  return context;
 }

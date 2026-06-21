@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotion, Variants } from 'framer-motion';
 
 interface ScrollRevealProps {
   children: React.ReactNode;
@@ -25,7 +25,7 @@ export function ScrollReveal({
 }: ScrollRevealProps) {
   const shouldReduceMotion = useReducedMotion();
 
-  const variants = {
+  const variants: Variants = {
     hidden: {
       opacity: 0,
       y: shouldReduceMotion ? 0 : (direction === 'up' ? distance : direction === 'down' ? -distance : 0),
@@ -38,7 +38,7 @@ export function ScrollReveal({
       transition: {
         duration: shouldReduceMotion ? 0.4 : duration,
         delay: delay,
-        ease: [0.21, 0.47, 0.32, 0.98],
+        ease: [0.21, 0.47, 0.32, 0.98] as [number, number, number, number],
         staggerChildren: staggerChildren
       }
     }
