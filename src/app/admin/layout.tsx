@@ -24,6 +24,50 @@ export default function AdminLayout({
             </Link>
 
             <Link
+              href="/admin/impact-stats"
+              className="block rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+            >
+              Impact Stats
+            </Link>
+
+            <Link
+              href="/admin/partners"
+              className="block rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+            >
+              Partners
+            </Link>
+
+            <Link
+              href="/admin/events"
+              className="block rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+            >
+              Events
+            </Link>
+
+            <Link
+              href="/admin/news"
+              className="block rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+            >
+              News
+            </Link>
+
+            <Link
+              href="/admin/donations"
+              className="block rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+            >
+              Donations
+            </Link>
+
+            <hr className="my-3 border-gray-600" />
+
+            <Link
+              href="/admin/settings"
+              className="block rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+            >
+              Settings
+            </Link>
+
+            <Link
               href="/admin/system/data-seeder"
               className="block rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
             >

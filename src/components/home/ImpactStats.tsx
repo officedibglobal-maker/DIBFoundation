@@ -46,7 +46,13 @@ export function ImpactStats({ stats }: ImpactStatsProps) {
     { id: "4", label: "Youth Empowered", value: 5000, suffix: "+", order: 4 }
   ];
 
-  const data = stats && stats.length > 0 ? stats : defaultStats;
+  const uniqueStats = stats.filter((stat, index, self) =>
+    index === self.findIndex((s) => (
+      s.label === stat.label
+    ))
+  );
+
+  const data = uniqueStats.length > 0 ? uniqueStats : defaultStats;
 
   return (
     <section className="py-20 bg-secondary text-white relative overflow-hidden">
