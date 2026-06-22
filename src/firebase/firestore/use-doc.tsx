@@ -22,14 +22,10 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (status === 'loading') {
-      setLoading(true);
-      return;
-    }
-
-    if (status === 'error' || !db) {
-      setError(new Error('Firebase Firestore is unavailable.'));
-      setLoading(false);
+    if (status !== "ready" || !db) {
+      if (status === 'ready' && !db) {
+          setLoading(false);
+      }
       return;
     }
 
@@ -42,6 +38,7 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
 
     setLoading(true);
 
+    const firestore = db;
     const unsubscribe = onSnapshot(
       ref,
       (snapshot: DocumentSnapshot<T>) => {

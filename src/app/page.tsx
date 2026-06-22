@@ -10,12 +10,23 @@ import Image from 'next/image';
 import { ArrowRight, ShoppingBag, Handshake, Heart, ShieldCheck } from 'lucide-react';
 import { getDocuments } from '@/lib/firestore/server';
 import { COLLECTIONS } from '@/lib/firestore/collections';
-import { Initiative, Stat } from '@/types/firestore';
+import { Initiative, Stat, ImpactStatViewModel } from '@/types/firestore';
 import { orderBy } from 'firebase/firestore';
 
 export default async function HomePage() {
   const initiatives = await getDocuments<Initiative>(COLLECTIONS.initiatives, [orderBy("order", "asc")]);
   const stats = await getDocuments<Stat>(COLLECTIONS.impactStats, [orderBy("order", "asc")]);
+
+  const serializedStats: ImpactStatViewModel[] = stats.map((stat) => ({
+    id: stat.id ?? "",
+    label: stat.label ?? "",
+    value: typeof stat.value === "number" ? stat.value : Number(stat.value ?? 0),
+    prefix: typeof stat.prefix === "string" ? stat.prefix : undefined,
+    suffix: typeof stat.suffix === "string" ? stat.suffix : undefined,
+    description: typeof stat.description === "string" ? stat.description : undefined,
+    iconName: typeof stat.iconName === "string" ? stat.iconName : undefined,
+    order: typeof stat.order === "number" ? stat.order : 0,
+  }));
 
   return (
     <div className="space-y-0">
@@ -65,7 +76,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <ImpactStats stats={stats} />
+      <ImpactStats stats={serializedStats} />
 
       <section className="py-24 bg-white">
         <div className="container mx-auto px-4">

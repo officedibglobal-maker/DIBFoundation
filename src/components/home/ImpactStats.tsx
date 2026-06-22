@@ -3,14 +3,14 @@
 
 import * as React from 'react';
 import { motion, animate } from 'framer-motion';
+import type { ImpactStatViewModel } from "@/types/view-models";
 
-interface StatProps {
+interface CounterProps {
   value: number;
   suffix?: string;
-  label: string;
 }
 
-function Counter({ value, suffix }: { value: number; suffix?: string }) {
+function Counter({ value, suffix }: CounterProps) {
   const [displayValue, setDisplayValue] = React.useState(0);
   const [mounted, setMounted] = React.useState(false);
 
@@ -34,12 +34,16 @@ function Counter({ value, suffix }: { value: number; suffix?: string }) {
   );
 }
 
-export function ImpactStats({ stats }: { stats?: any[] }) {
-  const defaultStats = [
-    { label: "Lives Impacted", value: 50000, suffix: "+" },
-    { label: "Communities Reached", value: 100, suffix: "+" },
-    { label: "Partners & Collaborators", value: 200, suffix: "+" },
-    { label: "Youth Empowered", value: 5000, suffix: "+" }
+interface ImpactStatsProps {
+  stats: ImpactStatViewModel[];
+}
+
+export function ImpactStats({ stats }: ImpactStatsProps) {
+  const defaultStats: ImpactStatViewModel[] = [
+    { id: "1", label: "Lives Impacted", value: 50000, suffix: "+", order: 1 },
+    { id: "2", label: "Communities Reached", value: 100, suffix: "+", order: 2 },
+    { id: "3", label: "Partners & Collaborators", value: 200, suffix: "+", order: 3 },
+    { id: "4", label: "Youth Empowered", value: 5000, suffix: "+", order: 4 }
   ];
 
   const data = stats && stats.length > 0 ? stats : defaultStats;
@@ -52,8 +56,8 @@ export function ImpactStats({ stats }: { stats?: any[] }) {
       
       <div className="container mx-auto px-4 relative z-10">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 text-center items-center">
-          {data.map((stat, i) => (
-            <div key={i} className="space-y-4">
+          {data.map((stat) => (
+            <div key={stat.id} className="space-y-4">
               <div className="text-4xl md:text-5xl lg:text-6xl font-bold text-accent font-headline">
                 <Counter value={stat.value} suffix={stat.suffix} />
               </div>

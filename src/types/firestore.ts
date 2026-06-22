@@ -80,6 +80,17 @@ export interface Stat extends BaseDocument {
   order: number;
 }
 
+export interface ImpactStatViewModel {
+  id: string;
+  label: string;
+  value: number;
+  prefix?: string;
+  suffix?: string;
+  description?: string;
+  iconName?: string;
+  order: number;
+}
+
 export interface Event extends BaseDocument {
   title: string;
   date: Timestamp;

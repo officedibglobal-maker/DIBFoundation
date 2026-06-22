@@ -44,8 +44,10 @@ export function DataSeederClient() {
       return;
     }
 
+    const firestore = db;
+
     try {
-      const seedResults = await seedFirestore(db, {
+      const seedResults = await seedFirestore(firestore, {
         mode,
         collection: selectedCollection === 'all' ? undefined : selectedCollection,
       });
