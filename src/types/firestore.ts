@@ -76,7 +76,10 @@ export interface Initiative extends BaseDocument {
 export interface Stat extends BaseDocument {
   value: number;
   label: string;
+  prefix?: string;
   suffix?: string;
+  description?: string;
+  iconName?: string;
   order: number;
 }
 

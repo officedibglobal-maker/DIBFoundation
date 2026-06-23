@@ -1,65 +1,31 @@
 
-import {
-  getApp,
-  getApps,
-  initializeApp,
-  type FirebaseApp,
-} from "firebase/app";
+import { getApp, getApps, initializeApp, FirebaseApp } from "firebase/app";
+import { getAuth, Auth } from "firebase/auth";
+import { getFirestore, Firestore } from "firebase/firestore";
+import { getStorage, FirebaseStorage } from "firebase/storage";
+import { firebaseConfig, isFirebaseConfigValid, missingFirebaseEnvVariables } from "./config";
 
-import {
-  getAuth,
-  type Auth,
-} from "firebase/auth";
-
-import {
-  getFirestore,
-  type Firestore,
-} from "firebase/firestore";
-
-import {
-  getStorage,
-  type FirebaseStorage,
-} from "firebase/storage";
-
-import {
-  firebaseConfig,
-  isFirebaseConfigValid,
-  missingFirebaseEnvVariables,
-} from "./config";
+if (!isFirebaseConfigValid) {
+  throw new Error(
+    `Firebase configuration is incomplete. Missing: ${missingFirebaseEnvVariables.join(
+      ", "
+    )}`
+  );
+}
 
 export interface FirebaseServices {
   app: FirebaseApp;
-  auth: Auth;
   db: Firestore;
+  auth: Auth;
   storage: FirebaseStorage;
 }
 
-let cachedServices: FirebaseServices | null = null;
+const app = getApps().length > 0
+  ? getApp()
+  : initializeApp(firebaseConfig);
 
-export function initializeFirebase(): FirebaseServices {
-  if (cachedServices) {
-    return cachedServices;
-  }
+const db = getFirestore(app);
+const auth = getAuth(app);
+const storage = getStorage(app);
 
-  if (!isFirebaseConfigValid) {
-    throw new Error(
-      `Firebase configuration is incomplete. Missing: ${missingFirebaseEnvVariables.join(
-        ", "
-      )}`
-    );
-  }
-
-  const app =
-    getApps().length > 0
-      ? getApp()
-      : initializeApp(firebaseConfig);
-
-  cachedServices = {
-    app,
-    auth: getAuth(app),
-    db: getFirestore(app),
-    storage: getStorage(app),
-  };
-
-  return cachedServices;
-}
+export { app, db, auth, storage };

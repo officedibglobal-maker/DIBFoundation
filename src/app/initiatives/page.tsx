@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { useFirestore } from '@/firebase/firestore/use-firestore';
 import { useCollection } from '@/firebase/firestore/use-collection';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { Card, CardContent } from '@/components/ui/card';
@@ -16,13 +16,20 @@ import { cn } from '@/lib/utils';
 
 export default function InitiativesPage() {
   const { db, status, error } = useFirestore();
+  const [isLoading, setIsLoading] = useState(true);
   const initiativesQuery = useMemo(() => {
     if (status !== 'ready' || !db) return null;
     return query(collection(db, 'initiatives'), orderBy('order', 'asc'));
   }, [db, status]);
   const { data: initiatives, loading } = useCollection(initiativesQuery);
 
-  if (status === 'loading') {
+  useEffect(() => {
+      if (status === 'ready' || status === 'error') {
+          setIsLoading(false);
+      }
+  }, [status, initiatives]);
+
+  if (isLoading) {
     return <p>Loading...</p>;
   }
 

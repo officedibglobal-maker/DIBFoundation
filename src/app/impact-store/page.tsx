@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { useFirestore } from '@/firebase/firestore/use-firestore';
 import { useCollection } from '@/firebase/firestore/use-collection';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,13 +20,20 @@ import { Input } from '@/components/ui/input';
 export default function ImpactStorePage() {
   const { db, status, error } = useFirestore();
   const addItem = useCart((state) => state.addItem);
-  
+  const [isLoading, setIsLoading] = useState(true);
+
   const storeQuery = useMemo(() => {
     if (status !== 'ready' || !db) return null;
     return query(collection(db, 'impactStore'), orderBy('order', 'asc'));
   }, [db, status]);
 
   const { data: items, loading } = useCollection(storeQuery);
+
+  useEffect(() => {
+      if (status === 'ready' || status === 'error') {
+          setIsLoading(false);
+      }
+  }, [status, items]);
 
   const [activeCategory, setActiveCategory] = React.useState('All');
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -57,7 +64,7 @@ export default function ImpactStorePage() {
     "Humanitarian programs"
   ];
 
-  if (status === 'loading') {
+  if (isLoading) {
     return <p>Loading...</p>;
   }
 

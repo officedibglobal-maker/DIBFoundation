@@ -26,10 +26,11 @@ export default function SubscribersPage() {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchSubscribers = async () => {
     if (!db) return;
-
+    setIsLoading(true);
     let q = query(collection(db, "newsletterSubscribers"));
 
     if (statusFilter !== "all") {
@@ -44,11 +45,14 @@ export default function SubscribersPage() {
       );
 
     setSubscribers(filteredList);
+    setIsLoading(false);
   };
 
   React.useEffect(() => {
     if (status === 'ready') {
       fetchSubscribers();
+    } else if (status === 'error') {
+      setIsLoading(false);
     }
   }, [db, status, statusFilter, searchTerm]);
 
@@ -79,7 +83,7 @@ export default function SubscribersPage() {
     document.body.removeChild(link);
   };
 
-  if (status === 'loading') {
+  if (isLoading) {
     return <p>Loading...</p>;
   }
 

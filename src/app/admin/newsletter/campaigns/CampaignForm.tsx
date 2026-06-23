@@ -70,10 +70,6 @@ export function CampaignForm({ campaign, campaignId }: CampaignFormProps) {
       alert("Sending functionality to be added!");
   }
 
-  if (status === "loading") {
-    return <p>Loading...</p>;
-  }
-
   if (status === "error") {
     return <p>Error: {error?.message}</p>;
   }

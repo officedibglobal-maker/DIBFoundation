@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from 'react';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useFirestore } from '@/firebase/firestore/use-firestore';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { collection, query, where, limit } from 'firebase/firestore';
@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 
 export default function ImpactPage() {
   const { db, status, error } = useFirestore();
+  const [isLoading, setIsLoading] = useState(true);
   
   const storiesQuery = useMemo(() => {
     if (status !== 'ready' || !db) return null;
@@ -22,7 +23,13 @@ export default function ImpactPage() {
 
   const { data: stories, loading } = useCollection(storiesQuery);
 
-  if (status === 'loading') {
+  useEffect(() => {
+      if (status === 'ready' || status === 'error') {
+          setIsLoading(false);
+      }
+  }, [status, stories]);
+
+  if (isLoading) {
     return <p>Loading...</p>;
   }
 

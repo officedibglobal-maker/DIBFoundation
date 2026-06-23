@@ -6,11 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useFirestore } from '@/firebase/firestore/use-firestore';
-import { getDocuments } from '@/lib/firestore/crud';
 import { COLLECTIONS } from '@/lib/firestore/collections';
 import { FocusArea } from '@/types/firestore';
 import { useEffect, useState, useMemo } from 'react';
-import { collection, query, where, orderBy } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const ICON_MAP: Record<string, any> = {
@@ -20,11 +19,7 @@ const ICON_MAP: Record<string, any> = {
   Heart
 };
 
-export function WhatWeDoGrid() {
-  const { db, status, error } = useFirestore();
-  const [focusAreas, setFocusAreas] = useState<FocusArea[]>([]);
-
-  const defaultAreas: FocusArea[] = [
+const defaultAreas: FocusArea[] = [
     {
       title: "Health & Wellbeing",
       slug: "health-wellbeing",
@@ -83,6 +78,11 @@ export function WhatWeDoGrid() {
     }
   ];
 
+export function WhatWeDoGrid() {
+  const { db, status, error } = useFirestore();
+  const [focusAreas, setFocusAreas] = useState<FocusArea[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const focusAreasQuery = useMemo(() => {
     if (status !== "ready" || !db) {
       return null;
@@ -97,22 +97,31 @@ export function WhatWeDoGrid() {
 
   useEffect(() => {
     async function fetchFocusAreas() {
-      if (!focusAreasQuery) return;
+      if (!focusAreasQuery) {
+        if (status === 'error') {
+            setFocusAreas(defaultAreas);
+            setLoading(false);
+        }
+        return;
+      }
       try {
-        const areas = await getDocuments<FocusArea>(db, COLLECTIONS.focusAreas, [orderBy("order", "asc")]);
+        const querySnapshot = await getDocs(focusAreasQuery);
+        const areas = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as FocusArea[];
         setFocusAreas(areas.length > 0 ? areas : defaultAreas);
       } catch (error) {
         console.error("Error fetching focus areas:", error);
         setFocusAreas(defaultAreas);
+      } finally {
+        setLoading(false);
       }
     }
 
     fetchFocusAreas();
-  }, [db, focusAreasQuery, defaultAreas]);
+  }, [focusAreasQuery, status]);
 
   const data = focusAreas.length > 0 ? focusAreas : defaultAreas;
 
-  if (status === 'loading') {
+  if (loading) {
     return (
         <section className="py-24 bg-background">
             <div className="container mx-auto px-4">

@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFirestore } from '@/firebase/firestore/use-firestore';
-import { getDocuments } from '@/lib/firestore/crud';
+import { getDocs, collection, query, where, orderBy } from 'firebase/firestore';
 import { COLLECTIONS } from '@/lib/firestore/collections';
 import { Skeleton } from '@/components/ui/skeleton';
 import { HeroSlide } from '@/types/firestore';
@@ -21,7 +21,7 @@ export function Hero() {
   const [currentIndex, setCurrentIndex] = React.useState(0);
   const [isPaused, setIsPaused] = React.useState(false);
 
-  const defaultSlides: HeroSlide[] = [
+  const defaultSlides: HeroSlide[] = React.useMemo(() => [
     {
       title: "Creating Pathways. Transforming Lives. Building Stronger Communities.",
       subtitle: "Advancing Health. Human Dignity. Sustainable Development.",
@@ -34,23 +34,33 @@ export function Hero() {
       order: 1,
       status: "published",
     }
-  ];
+  ], []);
 
   React.useEffect(() => {
     async function fetchSlides() {
       if (status === 'ready' && db) {
         try {
-          const fetchedSlides = await getDocuments<HeroSlide>(db, COLLECTIONS.heroSlides);
+          const slidesQuery = query(
+            collection(db, COLLECTIONS.heroSlides),
+            where("status", "==", "published"),
+            orderBy("order", "asc")
+          );
+          const querySnapshot = await getDocs(slidesQuery);
+          const fetchedSlides = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as HeroSlide[];
+          
           setSlides(fetchedSlides.length > 0 ? fetchedSlides : defaultSlides);
-        } catch (error) { 
+        } catch (error) {
           console.error("Error fetching hero slides:", error);
           setSlides(defaultSlides);
         } finally {
           setLoading(false);
         }
+      } else if (status === 'error') {
+        setSlides(defaultSlides);
+        setLoading(false);
       }
     }
-    fetchSlides();
+    void fetchSlides();
   }, [db, status, defaultSlides]);
 
   const data = slides;
@@ -65,7 +75,7 @@ export function Hero() {
     return () => clearInterval(timer);
   }, [data.length, isPaused]);
 
-  if (loading || status !== 'ready') {
+  if (loading) {
     return (
       <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-secondary">
           <Skeleton className="absolute inset-0 z-0 w-full h-full" />
@@ -93,6 +103,16 @@ export function Hero() {
   const handlePrev = () => setCurrentIndex((prev) => (prev - 1 + data.length) % data.length);
 
   const currentSlide = data[currentIndex];
+
+  if (!currentSlide) {
+      // This can happen briefly if slides are cleared
+      return (
+        <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-secondary">
+            <Skeleton className="absolute inset-0 z-0 w-full h-full" />
+        </section>
+      );
+  }
+
   const primaryCtaLabel = currentSlide.primaryCtaLabel || currentSlide.ctaText || "Learn More";
   const primaryCtaHref = currentSlide.primaryCtaHref || currentSlide.ctaUrl || "/get-involved";
   const secondaryCtaLabel = currentSlide.secondaryCtaLabel || "Explore Initiatives";

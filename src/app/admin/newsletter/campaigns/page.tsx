@@ -24,21 +24,24 @@ interface Campaign {
 export default function CampaignsPage() {
   const { db, status, error } = useFirestore();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (status !== 'ready' || !db) {
+        if(status === 'error') setIsLoading(false);
+        return;
+    }
     const fetchCampaigns = async () => {
-      if (!db) return;
       const q = query(collection(db, "newsletterCampaigns"), orderBy("createdAt", "desc"));
       const querySnapshot = await getDocs(q);
       setCampaigns(querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Campaign)));
+      setIsLoading(false);
     };
 
-    if (status === 'ready') {
-      fetchCampaigns();
-    }
+    fetchCampaigns();
   }, [db, status]);
 
-  if (status === 'loading') {
+  if (isLoading) {
     return <p>Loading...</p>;
   }
 
