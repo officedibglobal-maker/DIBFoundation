@@ -61,11 +61,11 @@ export function CartDrawer({ children }: { children: React.ReactNode }) {
               {items.map((item) => (
                 <div key={item.id} className="flex gap-4 group animate-in slide-in-from-right-4 duration-300">
                   <div className="relative w-24 h-24 rounded-xl overflow-hidden shrink-0 border bg-white shadow-sm">
-                    <Image src={item.imageUrl} alt={item.title} fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
+                    <Image src={item.imageUrl} alt={item.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
                   </div>
                   <div className="flex-1 flex flex-col justify-between py-1">
                     <div>
-                      <h4 className="font-bold text-sm text-secondary line-clamp-2 leading-snug">{item.title}</h4>
+                      <h4 className="font-bold text-sm text-secondary line-clamp-2 leading-snug">{item.name}</h4>
                       <p className="text-sm text-primary font-bold mt-1.5">{item.price}</p>
                     </div>
                     <div className="flex items-center justify-between mt-2">

@@ -107,7 +107,7 @@ export function FeaturedStory() {
     };
   }, [db, status]);
 
-  if (status === "loading" || loading) {
+  if (loading) {
     return <FeaturedStorySkeleton />;
   }
 

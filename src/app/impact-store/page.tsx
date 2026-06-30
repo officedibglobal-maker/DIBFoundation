@@ -5,66 +5,105 @@ import * as React from 'react';
 import { useFirestore } from '@/firebase/firestore/use-firestore';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useMemo, useState, useEffect } from 'react';
-import { collection, query, orderBy } from 'firebase/firestore';
-import { SectionHeader } from '@/components/shared/SectionHeader';
+import { collection, query, where } from 'firebase/firestore';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingBag, Heart, Sparkles, BrainCircuit, Shirt, ShoppingCart, Filter, Search, Palette } from 'lucide-react';
+import { ShoppingBag, Heart, Sparkles, ShoppingCart, Filter, Search } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { RevealItem } from '@/components/shared/ScrollReveal';
 import { useCart } from '@/hooks/use-cart';
 import { Input } from '@/components/ui/input';
+import { ImpactStoreProduct } from '@/types/impact-store-product';
+import { COLLECTIONS } from '@/lib/firestore/collections';
+import { ImpactStoreCategory } from '@/types/impact-store-category';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { impactStoreProductConverter, impactStoreCategoryConverter } from '@/lib/firestore/converters';
 
 export default function ImpactStorePage() {
   const { db, status, error } = useFirestore();
   const addItem = useCart((state) => state.addItem);
   const [isLoading, setIsLoading] = useState(true);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
 
-  const storeQuery = useMemo(() => {
+  const productsQuery = React.useMemo(() => {
     if (status !== 'ready' || !db) return null;
-    return query(collection(db, 'impactStore'), orderBy('order', 'asc'));
+    const productsRef = collection(
+      db,
+      COLLECTIONS.impactStore
+    ).withConverter(impactStoreProductConverter);
+    return query(
+      productsRef,
+      where('status', '==', 'published'),
+      where('active', '==', true)
+    );
   }, [db, status]);
 
-  const { data: items, loading } = useCollection(storeQuery);
+  const categoriesQuery = React.useMemo(() => {
+    if (status !== 'ready' || !db) return null;
+    const categoriesRef = collection(
+      db,
+      COLLECTIONS.impactStoreCategories
+    ).withConverter(impactStoreCategoryConverter);
+    return query(
+      categoriesRef,
+      where('status', '==', 'published')
+    );
+  }, [db, status]);
+
+  const { data: products, loading: productsLoading } = useCollection(productsQuery);
+  const { data: categories, loading: categoriesLoading } = useCollection(categoriesQuery);
 
   useEffect(() => {
-      if (status === 'ready' || status === 'error') {
-          setIsLoading(false);
-      }
-  }, [status, items]);
+    if (status === 'ready' || status === 'error') {
+      setIsLoading(false);
+    }
+  }, [status]);
 
-  const [activeCategory, setActiveCategory] = React.useState('All');
-  const [searchQuery, setSearchQuery] = React.useState('');
+  useEffect(() => {
+    console.info('Loaded public products:', products.length);
+  }, [products]);
 
-  const categories = [
-    { name: "All", icon: Filter },
-    { name: "Mental health awareness merchandise", icon: BrainCircuit },
-    { name: "Apparel and accessories", icon: Shirt },
-    { name: "Office and lifestyle items", icon: ShoppingBag },
-    { name: "Wellness and fitness products", icon: Heart },
-    { name: "Community-inspired products", icon: Palette },
-  ];
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredItems = items.filter(item => {
-    const itemData = item as any;
-    const matchesCategory = activeCategory === 'All' || itemData.category === activeCategory;
-    const matchesSearch = itemData.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          itemData.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  const selectedCategory = useMemo(() => searchParams.get('category') || 'all', [searchParams]);
+
+  const sortedProducts = useMemo(() => {
+    return [...products].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  }, [products]);
+
+  const filteredItems = useMemo(() => {
+    return sortedProducts.filter(item => {
+      const matchesCategory = selectedCategory === 'all' || item.categoryName.toLowerCase() === selectedCategory.toLowerCase();
+      const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            item.description.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  }, [sortedProducts, selectedCategory, searchQuery]);
+
+  const handleCategoryChange = (slug: string) => {
+    const params = new URLSearchParams(searchParams);
+    if (slug === 'all') {
+      params.delete('category');
+    } else {
+      params.set('category', slug);
+    }
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   const impactBenefits = [
-    "Health and community wellbeing",
-    "Youth empowerment",
-    "Mental health awareness",
-    "Medical outreach initiatives",
-    "Sustainable giving efforts",
-    "Humanitarian programs"
+    'Health and community wellbeing',
+    'Youth empowerment',
+    'Mental health awareness',
+    'Medical outreach initiatives',
+    'Sustainable giving efforts',
+    'Humanitarian programs'
   ];
 
-  if (isLoading) {
+  if (isLoading || productsLoading || categoriesLoading) {
     return <p>Loading...</p>;
   }
 
@@ -101,16 +140,24 @@ export default function ImpactStorePage() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col lg:flex-row gap-6 justify-between items-center">
             <div className="flex flex-wrap justify-center lg:justify-start gap-2">
+              <Button
+                  variant={selectedCategory === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleCategoryChange('all')}
+                  className="rounded-full gap-2 text-xs h-9 px-4"
+                >
+                  <Filter className="w-3.5 h-3.5" />
+                  All Collections
+                </Button>
               {categories.map((cat, i) => (
                 <Button
                   key={i}
-                  variant={activeCategory === cat.name ? "default" : "outline"}
+                  variant={selectedCategory === cat.slug ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setActiveCategory(cat.name)}
+                  onClick={() => handleCategoryChange(cat.slug)}
                   className="rounded-full gap-2 text-xs h-9 px-4"
                 >
-                  <cat.icon className="w-3.5 h-3.5" />
-                  {cat.name === "All" ? "All Collections" : cat.name.split(' ')[0]}
+                  {cat.name}
                 </Button>
               ))}
             </div>
@@ -130,7 +177,7 @@ export default function ImpactStorePage() {
       {/* Product Grid */}
       <section className="py-20 bg-muted/30">
         <div className="container mx-auto px-4">
-          {loading ? (
+          {(productsLoading || categoriesLoading) ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
               {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <div key={i} className="h-96 bg-white animate-pulse rounded-2xl" />)}
             </div>
@@ -138,53 +185,50 @@ export default function ImpactStorePage() {
             <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-muted">
               <ShoppingCart className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
               <p className="text-muted-foreground font-medium mb-4">No products found in this collection.</p>
-              <p className="text-sm text-muted-foreground mb-6">If you are the admin, please visit /admin and click "Seed Website Data".</p>
-              <Button variant="outline" onClick={() => {setActiveCategory('All'); setSearchQuery('');}}>Clear Filters</Button>
+              <Button variant="outline" onClick={() => {handleCategoryChange('all'); setSearchQuery('');}}>Clear Filters</Button>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-              {filteredItems.map((item, idx) => {
-                const itemData = item as any;
-                return (
-                  <RevealItem key={itemData.id || idx}>
+              {filteredItems.map((item, idx) => (
+                  <RevealItem key={item.id || idx}>
                     <Card className="group h-full flex flex-col border-none shadow-lg hover:shadow-2xl transition-all duration-500 rounded-2xl overflow-hidden bg-white">
                       <div className="relative h-64 overflow-hidden bg-muted">
                         <Image 
-                          src={itemData.imageUrl || "https://picsum.photos/seed/dibf-product/600/600"} 
-                          alt={itemData.title} 
+                          src={item.imageUrl || 'https://picsum.photos/seed/dibf-product/600/600'} 
+                          alt={item.name} 
                           fill 
                           className="object-cover group-hover:scale-110 transition-transform duration-700"
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                         />
                         <div className="absolute top-4 left-4">
-                          <Badge className="bg-primary/90 text-white backdrop-blur-sm shadow-sm">{itemData.category}</Badge>
+                          <Badge className="bg-primary/90 text-white backdrop-blur-sm shadow-sm">{item.categoryName}</Badge>
                         </div>
                       </div>
                       <CardHeader className="p-6 pb-2">
                         <div className="flex justify-between items-start gap-2">
-                          <CardTitle className="text-lg font-bold text-secondary line-clamp-1 group-hover:text-primary transition-colors">{itemData.title}</CardTitle>
-                          <span className="font-bold text-primary shrink-0">{itemData.price}</span>
+                          <CardTitle className="text-lg font-bold text-secondary line-clamp-1 group-hover:text-primary transition-colors">{item.name}</CardTitle>
+                          <span className="font-bold text-primary shrink-0">{item.price}</span>
                         </div>
                       </CardHeader>
                       <CardContent className="p-6 pt-0 flex-1 space-y-4">
-                        <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed h-10">
-                          {itemData.description}
+                        <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed h-12">
+                          {item.description}
                         </p>
                         <div className="bg-accent/5 p-3 rounded-xl flex gap-3 items-start border border-accent/10">
                           <Sparkles className="w-4 h-4 text-accent shrink-0 mt-0.5" />
                           <div className="text-[11px] font-bold text-accent-foreground leading-tight uppercase tracking-wider">
                             <span className="opacity-60 block mb-0.5">Impact Note:</span>
-                            {itemData.impactNote}
+                            {item.shortDescription}
                           </div>
                         </div>
                       </CardContent>
                       <CardFooter className="p-6 pt-0">
                         <Button 
                           onClick={() => addItem({
-                            id: itemData.id,
-                            title: itemData.title,
-                            price: itemData.price,
-                            imageUrl: itemData.imageUrl,
+                            id: item.id,
+                            name: item.name,
+                            price: item.price,
+                            imageUrl: item.imageUrl,
                             quantity: 1
                           })}
                           className="w-full gap-2 font-bold shadow-md hover:scale-[1.02] active:scale-95 transition-all"
@@ -195,8 +239,7 @@ export default function ImpactStorePage() {
                       </CardFooter>
                     </Card>
                   </RevealItem>
-                )}
-              )}
+                ))}
             </div>
           )}
         </div>

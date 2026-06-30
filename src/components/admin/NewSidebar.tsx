@@ -33,11 +33,19 @@ import {
   ShieldCheck,
   ChevronDown,
   ChevronRight,
+  LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
-const sidebarNavItems = [
+interface NavItem {
+  title: string;
+  href?: string;
+  icon: LucideIcon;
+  children?: NavItem[];
+}
+
+const sidebarNavItems: NavItem[] = [
   {
     title: "Dashboard",
     href: "/admin",
@@ -63,10 +71,10 @@ const sidebarNavItems = [
     title: "Impact Store",
     icon: Store,
     children: [
-      { title: "Products", href: "/admin/store/products", icon: ShoppingBag },
-      { title: "Categories", href: "/admin/store/categories", icon: ShoppingCart },
-      { title: "Orders", href: "/admin/store/orders", icon: ShoppingCart },
-      { title: "Settings", href: "/admin/store/settings", icon: Settings },
+      { title: "Products", href: "/admin/impact-store/products", icon: ShoppingBag },
+      { title: "Categories", href: "/admin/impact-store/categories", icon: ShoppingCart },
+      { title: "Orders", href: "/admin/impact-store/orders", icon: ShoppingCart },
+      { title: "Settings", href: "/admin/impact-store/settings", icon: Settings },
     ],
   },
     {
@@ -118,10 +126,10 @@ const sidebarNavItems = [
 export function NewSidebar() {
   const pathname = usePathname();
 
-  const renderNav = (items: any[], level = 0) => {
+  const renderNav = (items: NavItem[], level = 0) => {
     return items.map((item) => {
-      const isActive = pathname === item.href;
-      const isParentActive = item.children && item.children.some(child => pathname.startsWith(child.href));
+      const isActive = item.href ? pathname.startsWith(item.href) : false;
+      const isParentActive = item.children && item.children.some(child => child.href && pathname.startsWith(child.href));
 
       if (item.children) {
         return (
@@ -145,7 +153,7 @@ export function NewSidebar() {
       return (
         <Link
           key={item.href}
-          href={item.href}
+          href={item.href!}
           className={`group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-700 hover:text-white ${isActive ? "bg-gray-700 text-white" : "text-gray-300"}`}
         >
           {item.icon && <item.icon className="mr-3 h-5 w-5" />}

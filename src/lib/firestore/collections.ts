@@ -12,7 +12,7 @@ export const COLLECTIONS = {
   publications: "publications",
   impactStore: "impactStore",
   impactStoreCategories: "impactStoreCategories",
-  impactOrders: "impactOrders",
+  impactStoreOrders: "impactStoreOrders",
   impactStoreSettings: "impactStoreSettings",
   contactMessages: "contactMessages",
   volunteerRequests: "volunteerRequests",
