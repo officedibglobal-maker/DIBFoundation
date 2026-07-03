@@ -13,6 +13,7 @@ import { useStorage } from '@/firebase/storage/use-storage';
 import { useToast } from '@/hooks/use-toast';
 import { impactStoreProductConverter } from '@/lib/firestore/converters';
 import { ImpactStoreProduct, ProductUploadFiles } from '@/types/impact-store-product';
+import { StoredDocument } from '@/types/firestore';
 
 export default function NewProductPage() {
   const { db } = useFirestore();
@@ -20,11 +21,11 @@ export default function NewProductPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [categories, setCategories] = useState<ImpactStoreCategory[]>([]);
+  const [categories, setCategories] = useState<StoredDocument<ImpactStoreCategory>[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const categoriesCollectionRef = useMemo(() => 
+  const categoriesCollectionRef = useMemo(() =>
     db ? collection(db, COLLECTIONS.impactStoreCategories) : null,
     [db]
   );
@@ -34,7 +35,18 @@ export default function NewProductPage() {
       if (!categoriesCollectionRef) return;
       try {
         const snapshot = await getDocs(categoriesCollectionRef);
-        const activeCategories = snapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id })) as ImpactStoreCategory[];
+        const activeCategories = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                name: data.name,
+                slug: data.slug,
+                order: data.order,
+                status: data.status,
+                description: data.description,
+            } as StoredDocument<ImpactStoreCategory>
+
+        });
         setCategories(activeCategories);
       } catch (err) {
         console.error(err);
@@ -65,15 +77,18 @@ export default function NewProductPage() {
       }
 
       const productsRef = collection(db, COLLECTIONS.impactStore).withConverter(impactStoreProductConverter);
-      
-      const newProduct: Omit<ImpactStoreProduct, 'docId' | 'createdAt' | 'updatedAt'> = {
+
+      const newProduct: Omit<ImpactStoreProduct, 'id'> = {
         ...productData,
         imageUrl: imageUrl,
         images: [], // Placeholder for multiple images if needed
-        id: '' // id will be set by firestore
+        active: true,
+        published: false,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       };
 
-      await addDoc(productsRef, newProduct as any); // Type assertion needed due to converter
+      await addDoc(productsRef, newProduct);
 
       toast({ title: "Success", description: "Product created successfully." });
       router.push('/admin/impact-store/products');

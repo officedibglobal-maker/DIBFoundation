@@ -5,38 +5,42 @@ import {
   type QueryDocumentSnapshot,
   type SnapshotOptions,
   type WithFieldValue,
+  FieldValue,
+  serverTimestamp
 } from "firebase/firestore";
 
 import type { Advertiser } from "@/types/advertiser";
 import type { NewsletterCampaign } from "@/types/newsletter-campaign";
 import type {
-  BaseDocument,
-  StoredDocument,
+  BaseDocument
 } from "@/types/firestore";
+import { ImpactStoreCategory } from "@/types/impact-store-category";
+import { ImpactStoreProduct } from "@/types/impact-store-product";
 
+// A generic converter that handles the 'id' and timestamps.
 export const genericConverter = <T extends BaseDocument>() => ({
   toFirestore(data: WithFieldValue<T>): DocumentData {
-    const { id: _id, ...rest } = data;
+    const { id, ...rest } = data;
+    const now = Timestamp.now();
+
+    const createdAt = data.createdAt instanceof FieldValue ? data.createdAt : now;
 
     return {
       ...rest,
-      createdAt: data.createdAt || Timestamp.now(),
-      updatedAt: Timestamp.now(),
+      createdAt,
+      updatedAt: serverTimestamp(),
     };
   },
 
   fromFirestore(
-    snapshot: QueryDocumentSnapshot<DocumentData, DocumentData>,
+    snapshot: QueryDocumentSnapshot<DocumentData>,
     options?: SnapshotOptions
-  ): StoredDocument<T> {
-    const data = snapshot.data(options) as T;
-
+  ): T {
+    const data = snapshot.data(options);
     return {
-      ...data,
       id: snapshot.id,
-      createdAt: data.createdAt || null,
-      updatedAt: data.updatedAt || null,
-    } as StoredDocument<T>;
+      ...data,
+    } as T;
   },
 });
 
@@ -45,3 +49,9 @@ export const advertiserConverter =
 
 export const newsletterCampaignConverter =
   genericConverter<NewsletterCampaign>();
+
+export const impactStoreCategoryConverter =
+  genericConverter<ImpactStoreCategory>();
+
+export const impactStoreProductConverter =
+  genericConverter<ImpactStoreProduct>();

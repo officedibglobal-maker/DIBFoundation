@@ -9,7 +9,7 @@ import { NewsletterCampaign } from "@/types/newsletter-campaign";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { AdminDataTable } from "@/components/admin/AdminDataTable";
+import AdminDataTable from "@/components/admin/AdminDataTable";
 import { Badge } from "@/components/ui/badge";
 import { db } from "@/firebase";
 import { StoredDocument } from "@/types/firestore";
@@ -62,20 +62,6 @@ const NewsletterPage = () => {
         <AdminDataTable
           columns={columns}
           data={filteredCampaigns}
-          renderCell={(campaign: StoredDocument<NewsletterCampaign>, column: string) => {
-            switch(column) {
-                case 'title':
-                    return (
-                        <Link href={`/admin/newsletter/${campaign.id}`}>
-                            {campaign.title}
-                        </Link>
-                    );
-                case 'status':
-                    return <Badge>{campaign.status}</Badge>;
-                default:
-                    return campaign[column as keyof NewsletterCampaign];
-            }
-          }}
         />
       </div>
     </div>

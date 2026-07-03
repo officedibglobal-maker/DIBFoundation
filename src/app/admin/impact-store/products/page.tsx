@@ -75,11 +75,21 @@ export default function AdminProductsPage() {
       <AdminDataTable
         columns={columns}
         data={products}
-        actions={(product) => (
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/admin/impact-store/products/${product.docId}/edit`}>Edit</Link>
-          </Button>
-        )}
+        actions={(product) => {
+          const productId = product.id;
+
+          if (!productId) {
+            return null;
+          }
+
+          return (
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/admin/impact-store/products/${productId}/edit`}>
+                Edit
+              </Link>
+            </Button>
+          );
+        }}
       />
     </div>
   );

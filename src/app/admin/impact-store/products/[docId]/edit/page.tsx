@@ -1,103 +1,265 @@
+"use client";
 
-'use client';
+import { useEffect, useMemo, useState } from "react";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  serverTimestamp,
+  setDoc,
+  type PartialWithFieldValue,
+} from "firebase/firestore";
+import { useParams, useRouter } from "next/navigation";
 
-import { useState, useEffect, useMemo } from 'react';
-import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
-import { ProductForm, ProductFormData } from '@/components/admin/ProductForm';
-import { ImpactStoreCategory } from '@/types/impact-store-category';
-import { useFirestore } from '@/firebase/firestore/use-firestore';
-import { collection, doc, getDoc, getDocs, serverTimestamp, updateDoc } from 'firebase/firestore';
-import { useRouter, useParams } from 'next/navigation';
-import { COLLECTIONS } from '@/lib/firestore/collections';
-import { useStorage } from '@/firebase/storage/use-storage';
-import { useToast } from '@/hooks/use-toast';
-import { impactStoreProductConverter } from '@/lib/firestore/converters';
-import { ImpactStoreProduct, ProductUploadFiles } from '@/types/impact-store-product';
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import {
+  ProductForm,
+  type ProductFormData,
+} from "@/components/admin/ProductForm";
+import { useFirestore } from "@/firebase/firestore/use-firestore";
+import { useStorage } from "@/firebase/storage/use-storage";
+import { useToast } from "@/hooks/use-toast";
+import { COLLECTIONS } from "@/lib/firestore/collections";
+import {
+  impactStoreCategoryConverter,
+  impactStoreProductConverter,
+} from "@/lib/firestore/converters";
+import {
+  type ImpactStoreProduct,
+  type ProductUploadFiles,
+} from "@/types/impact-store-product";
+import { type ImpactStoreCategory } from "@/types/impact-store-category";
 
 export default function EditProductPage() {
   const { db } = useFirestore();
   const { uploadFile, uploading: imageUploading } = useStorage();
   const router = useRouter();
-  const params = useParams();
+  const params = useParams<{ docId: string }>();
   const { toast } = useToast();
-  const { docId } = params;
 
-  const [product, setProduct] = useState<ImpactStoreProduct | null>(null);
-  const [categories, setCategories] = useState<ImpactStoreCategory[]>([]);
+  const docId = params.docId;
+
+  const [product, setProduct] =
+    useState<ImpactStoreProduct | null>(null);
+  const [categories, setCategories] =
+    useState<ImpactStoreCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const productDocRef = useMemo(() => 
-    db && docId ? doc(db, COLLECTIONS.impactStore, docId as string).withConverter(impactStoreProductConverter) : null,
-    [db, docId]
-  );
+  const productDocRef = useMemo(() => {
+    if (!db || !docId) {
+      return null;
+    }
+
+    return doc(
+      db,
+      COLLECTIONS.impactStore,
+      docId,
+    ).withConverter(impactStoreProductConverter);
+  }, [db, docId]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (!productDocRef) return;
+    let cancelled = false;
+
+    async function fetchData() {
+      if (!db || !productDocRef) {
+        return;
+      }
+
+      setLoading(true);
+
       try {
-        const productSnap = await getDoc(productDocRef);
-        if (!productSnap.exists()) {
-          toast({ title: "Error", description: "Product not found.", variant: "destructive" });
-          router.push('/admin/impact-store/products');
+        const categoriesRef = collection(
+          db,
+          COLLECTIONS.impactStoreCategories,
+        ).withConverter(impactStoreCategoryConverter);
+
+        const [productSnapshot, categoriesSnapshot] =
+          await Promise.all([
+            getDoc(productDocRef),
+            getDocs(categoriesRef),
+          ]);
+
+        if (cancelled) {
           return;
         }
-        setProduct(productSnap.data());
 
-        if (db) {
-          const categoriesRef = collection(db, COLLECTIONS.impactStoreCategories);
-          const categoriesSnap = await getDocs(categoriesRef);
-          setCategories(categoriesSnap.docs.map(doc => ({ ...doc.data(), docId: doc.id })) as ImpactStoreCategory[]);
+        if (!productSnapshot.exists()) {
+          toast({
+            title: "Product not found",
+            description:
+              "The requested Impact Store product could not be found.",
+            variant: "destructive",
+          });
+
+          router.replace("/admin/impact-store/products");
+          return;
         }
 
-      } catch (err) {
-        console.error(err);
-        toast({ title: "Error loading data", description: (err as Error).message, variant: "destructive" });
+        setProduct(productSnapshot.data());
+        setCategories(
+          categoriesSnapshot.docs.map((categoryDocument) =>
+            categoryDocument.data(),
+          ),
+        );
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        console.error("Failed to load product data:", error);
+
+        toast({
+          title: "Error loading product",
+          description:
+            error instanceof Error
+              ? error.message
+              : "An unexpected error occurred while loading the product.",
+          variant: "destructive",
+        });
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
+    }
+
+    void fetchData();
+
+    return () => {
+      cancelled = true;
     };
-    fetchData();
   }, [db, productDocRef, router, toast]);
 
-  const handleSave = async (productData: ProductFormData, files: ProductUploadFiles) => {
-    if (!db || !productDocRef) {
-      toast({ title: "Error", description: "Database not available or product reference is missing.", variant: "destructive" });
+  async function handleSave(
+    productData: ProductFormData,
+    files: ProductUploadFiles,
+  ) {
+    if (!productDocRef || !docId) {
+      toast({
+        title: "Database unavailable",
+        description:
+          "The product reference is unavailable. Refresh the page and try again.",
+        variant: "destructive",
+      });
+
       return;
     }
 
     setSaving(true);
+
     try {
+      const primaryImage = files.primaryImage;
+      const galleryImages = files.galleryImages ?? [];
+
       let imageUrl = productData.imageUrl;
-      const { primaryImage, galleryImages } = files;
+      let images = productData.images ?? [];
 
       if (primaryImage) {
-        const imagePath = `impact-store/products/${Date.now()}_${primaryImage.name}`;
-        const uploadedUrl = await uploadFile(primaryImage, imagePath);
-        if (!uploadedUrl) throw new Error('Image upload failed.');
+        const imagePath =
+          `impact-store/products/${docId}/primary/` +
+          `${Date.now()}-${primaryImage.name}`;
+
+        const uploadedUrl = await uploadFile(
+          primaryImage,
+          imagePath,
+        );
+
+        if (!uploadedUrl) {
+          throw new Error("The primary image upload failed.");
+        }
+
         imageUrl = uploadedUrl;
       }
 
-      const updatedData = { ...productData, imageUrl, updatedAt: serverTimestamp() };
-      await updateDoc(productDocRef, updatedData);
+      if (galleryImages.length > 0) {
+        const uploadedGalleryUrls = await Promise.all(
+          galleryImages.map(async (file, index) => {
+            const imagePath =
+              `impact-store/products/${docId}/gallery/` +
+              `${Date.now()}-${index}-${file.name}`;
 
-      toast({ title: "Success", description: "Product updated successfully." });
-      router.push('/admin/impact-store/products');
+            const uploadedUrl = await uploadFile(
+              file,
+              imagePath,
+            );
+
+            if (!uploadedUrl) {
+              throw new Error(
+                `The gallery image "${file.name}" could not be uploaded.`,
+              );
+            }
+
+            return uploadedUrl;
+          }),
+        );
+
+        images = [...images, ...uploadedGalleryUrls];
+      }
+
+      const updatedData: PartialWithFieldValue<ImpactStoreProduct> = {
+        ...productData,
+        imageUrl,
+        images,
+        updatedAt: serverTimestamp(),
+      };
+
+      await setDoc(productDocRef, updatedData, {
+        merge: true,
+      });
+
+      toast({
+        title: "Product updated",
+        description: `${productData.name} was updated successfully.`,
+      });
+
+      router.push("/admin/impact-store/products");
+      router.refresh();
     } catch (error) {
       console.error("Failed to update product:", error);
-      toast({ title: "Error", description: `Failed to update product: ${(error as Error).message}`, variant: "destructive" });
+
+      toast({
+        title: "Error updating product",
+        description:
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred while updating the product.",
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
-  };
+  }
 
-  if (loading || !product) {
-    return <p>Loading product details...</p>;
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <AdminPageHeader title="Edit Product" />
+
+        <p className="text-sm text-muted-foreground">
+          Loading product details...
+        </p>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="space-y-6">
+        <AdminPageHeader title="Edit Product" />
+
+        <p className="text-sm text-muted-foreground">
+          Product details are unavailable.
+        </p>
+      </div>
+    );
   }
 
   return (
-    <div>
+    <div className="space-y-6">
       <AdminPageHeader title="Edit Product" />
+
       <ProductForm
         product={product}
         categories={categories}

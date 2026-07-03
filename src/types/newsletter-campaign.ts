@@ -5,6 +5,7 @@ import { Timestamp } from "firebase/firestore";
 export interface NewsletterCampaign extends BaseDocument {
   title: string;
   campaignType: CampaignType;
+  organization: string;
   sponsorId?: string;
   sponsorName?: string;
   subject: string;

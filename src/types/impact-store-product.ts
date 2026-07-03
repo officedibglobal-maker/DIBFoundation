@@ -1,33 +1,28 @@
 
-export type ImpactStoreProductStatus =
-  | "draft"
-  | "published"
-  | "archived";
+import { BaseDocument, ContentStatus } from "./firestore";
 
-export interface ImpactStoreProduct {
-  docId: string;
-  id: string;
-  name: string;
-  slug: string;
-  description: string;
-  shortDescription: string;
-  price: number;
-  currency: string;
-  categoryId: string;
-  categoryName: string;
-  imageUrl: string;
-  images: string[];
-  stockQuantity: number;
-  status: ImpactStoreProductStatus;
-  featured: boolean;
-  order: number;
-  active: boolean;
-  published: boolean;
-  createdAt?: unknown;
-  updatedAt?: unknown;
+export type ImpactStoreProductStatus = ContentStatus;
+
+export interface ImpactStoreProduct extends BaseDocument {
+    name: string;
+    slug: string;
+    description: string;
+    shortDescription: string;
+    price: number;
+    currency: string;
+    categoryId: string;
+    categoryName: string;
+    imageUrl: string;
+    images: string[];
+    stockQuantity: number;
+    status: ImpactStoreProductStatus;
+    featured: boolean;
+    order: number;
+    active: boolean;
+    published: boolean;
 }
 
 export interface ProductUploadFiles {
-  primaryImage?: File;
-  galleryImages: File[];
+    primaryImage?: File;
+    galleryImages?: File[];
 }

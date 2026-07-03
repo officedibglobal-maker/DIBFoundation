@@ -1,21 +1,28 @@
 
 import { useEffect, useState } from 'react';
 import { onSnapshot, Query } from 'firebase/firestore';
-import { StoredDocument } from '@/types/firestore';
+import { BaseDocument, StoredDocument } from '@/types/firestore';
 
-export function useCollection<T>(query: Query<T>) {
-  const [data, setData] = useState<StoredDocument<T>[] | undefined>(undefined);
+export function useCollection<T extends BaseDocument>(
+  query: Query<T> | null | undefined
+) {
+  const [data, setData] = useState<StoredDocument<T>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | undefined>(undefined);
 
   useEffect(() => {
+    if (!query) {
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onSnapshot(
       query,
       (querySnapshot) => {
-        const data: StoredDocument<T>[] = [];
-        querySnapshot.forEach((doc) => {
-          data.push(doc.data() as StoredDocument<T>);
-        });
+        const data: StoredDocument<T>[] = querySnapshot.docs.map((doc) => ({
+          ...(doc.data() as T),
+          id: doc.id,
+        }));
         setData(data);
         setLoading(false);
       },
