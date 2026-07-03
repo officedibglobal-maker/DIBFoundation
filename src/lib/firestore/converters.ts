@@ -31,6 +31,8 @@ export const genericConverter = <T extends BaseDocument>() => ({
       ...rest,
       createdAt,
       updatedAt: serverTimestamp(),
+      sentAt: null,
+      status: "draft",
     };
   },
 
@@ -49,8 +51,33 @@ export const genericConverter = <T extends BaseDocument>() => ({
 export const advertiserConverter =
   genericConverter<Advertiser>();
 
-export const newsletterCampaignConverter =
-  genericConverter<NewsletterCampaign>();
+export const newsletterCampaignConverter = {
+  toFirestore(data: WithFieldValue<NewsletterCampaign>): DocumentData {
+    const { id, ...rest } = data;
+    const now = Timestamp.now();
+
+    const createdAt = data.createdAt instanceof FieldValue ? data.createdAt : now;
+
+    return {
+      ...rest,
+      createdAt,
+      updatedAt: serverTimestamp(),
+      sentAt: data.sentAt ? data.sentAt : null,
+      status: data.status ? data.status : "draft",
+    };
+  },
+
+  fromFirestore(
+    snapshot: QueryDocumentSnapshot<DocumentData>,
+    options?: SnapshotOptions
+  ): NewsletterCampaign {
+    const data = snapshot.data(options);
+    return {
+      id: snapshot.id,
+      ...data,
+    } as NewsletterCampaign;
+  },
+};
 
 export const newsletterSettingsConverter =
   genericConverter<NewsletterSettings>();
