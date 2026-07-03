@@ -96,7 +96,6 @@ const sidebarNavItems: NavItem[] = [
         icon: Send,
         children: [
           { title: "Subscribers", href: "/admin/newsletter/subscribers", icon: Users },
-          { title: "Campaigns", href: "/admin/newsletter/campaigns", icon: Mails },
           { title: "Settings", href: "/admin/newsletter/settings", icon: Settings },
         ],
       },

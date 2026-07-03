@@ -56,7 +56,6 @@ const navGroups = [
             { href: "/admin/contact-messages", label: "Contact Messages", icon: Mail },
             { href: "/admin/volunteer-requests", label: "Volunteer Requests", icon: Heart },
             { href: "/admin/newsletter/subscribers", label: "Newsletter Subscribers", icon: Users },
-            { href: "/admin/newsletter/campaigns", label: "Newsletter Campaigns", icon: Mail },
             { href: "/admin/newsletter/settings", label: "Newsletter Settings", icon: Settings },
         ]
     },
