@@ -11,6 +11,8 @@ import {
 
 import type { Advertiser } from "@/types/advertiser";
 import type { NewsletterCampaign } from "@/types/newsletter-campaign";
+import type { NewsletterSettings } from "@/types/newsletter-settings";
+import type { NewsletterSubscriber } from "@/types/newsletter-subscriber";
 import type {
   BaseDocument
 } from "@/types/firestore";
@@ -49,6 +51,12 @@ export const advertiserConverter =
 
 export const newsletterCampaignConverter =
   genericConverter<NewsletterCampaign>();
+
+export const newsletterSettingsConverter =
+  genericConverter<NewsletterSettings>();
+
+export const newsletterSubscriberConverter =
+  genericConverter<NewsletterSubscriber>();
 
 export const impactStoreCategoryConverter =
   genericConverter<ImpactStoreCategory>();

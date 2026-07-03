@@ -1,31 +1,40 @@
 
-import { BaseDocument, NewsletterCampaignStatus, PaymentStatus, CampaignType } from "./firestore";
-import { Timestamp } from "firebase/firestore";
+import type {
+  FieldValue,
+  Timestamp,
+} from "firebase/firestore";
 
-export interface NewsletterCampaign extends BaseDocument {
-  title: string;
-  campaignType: CampaignType;
-  organization: string;
-  sponsorId?: string;
-  sponsorName?: string;
+import type { BaseDocument } from "@/types/firestore";
+
+export type NewsletterCampaignStatus =
+  | "draft"
+  | "scheduled"
+  | "sending"
+  | "sent"
+  | "failed"
+  | "archived";
+
+export interface NewsletterCampaign
+  extends BaseDocument {
+  name: string;
   subject: string;
-  preheader: string;
-  heroImageUrl?: string;
-  content: string;
-  ctaLabel: string;
-  ctaUrl: string;
-  disclosureText: string;
-  price: number;
-  currency: string;
-  paymentStatus: PaymentStatus;
+  fromName?: string;
+  fromEmail?: string;
+
+  htmlContent?: string;
+  plainTextContent?: string;
+
   status: NewsletterCampaignStatus;
-  testRecipients?: string[];
-  recipientCount?: number;
-  sentAt?: Timestamp;
-  lastTestSentAt?: Timestamp;
-  brevoLastAttemptAt?: Timestamp;
+
+  audience?: Record<string, any>; // Consider defining a specific type
+
+  createdAt?: Timestamp | FieldValue;
+  updatedAt?: Timestamp | FieldValue;
+  scheduledAt?: Timestamp | FieldValue | null;
+  sentAt?: Timestamp | FieldValue | null;
+
+  brevoCampaignId?: string | number;
+  brevoMessageId?: string;
+  brevoLastAttemptAt?: Timestamp | FieldValue | null;
   brevoLastError?: string;
-  createdBy?: string;
-  approvedBy?: string;
-  approvedAt?: Timestamp;
 }

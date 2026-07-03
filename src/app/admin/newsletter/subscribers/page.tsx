@@ -10,7 +10,6 @@ import {
   Timestamp,
   updateDoc,
   where,
-  type DocumentData,
 } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
@@ -38,73 +37,90 @@ import {
 } from "@/components/ui/table";
 import { useFirestore } from "@/firebase/firestore/use-firestore";
 import { useToast } from "@/hooks/use-toast";
+import { COLLECTIONS } from "@/lib/firestore/collections";
+import { newsletterSubscriberConverter } from "@/lib/firestore/converters";
+import type {
+  NewsletterSubscriber,
+  NewsletterSubscriberStatus,
+} from "@/types/newsletter-subscriber";
+import type { StoredDocument } from "@/types/firestore";
 
-const NEWSLETTER_SUBSCRIPTIONS_COLLECTION =
-  "newsletterSubscriptions";
+type StatusFilter = "all" | NewsletterSubscriberStatus;
 
-type SubscriberStatus =
-  | "active"
-  | "inactive"
-  | "unsubscribed";
-
-type StatusFilter = "all" | SubscriberStatus;
-
-interface Subscriber {
-  id: string;
+type SubscriberRow = StoredDocument<NewsletterSubscriber> & {
   email: string;
-  status: SubscriberStatus;
+  status: NewsletterSubscriberStatus;
   source: string;
   subscribedAt: Timestamp | null;
   welcomeEmailSent: boolean;
+};
+
+function isSubscriberStatus(
+  value: unknown,
+): value is NewsletterSubscriberStatus {
+  return (
+    value === "active" ||
+    value === "inactive" ||
+    value === "unsubscribed"
+  );
+}
+
+function isStatusFilter(
+  value: string,
+): value is StatusFilter {
+  return value === "all" || isSubscriberStatus(value);
 }
 
 function normalizeSubscriber(
-  id: string,
-  data: DocumentData,
-): Subscriber | null {
+  documentId: string,
+  subscriber: NewsletterSubscriber,
+): SubscriberRow | null {
   const email =
-    typeof data.email === "string"
-      ? data.email.trim()
+    typeof subscriber.email === "string"
+      ? subscriber.email.trim()
       : "";
 
   if (!email) {
     console.warn(
-      `Skipping newsletter subscription "${id}" because it has no valid email address.`,
+      `Skipping newsletter subscription "${documentId}" because it has no valid email address.`,
     );
 
     return null;
   }
 
-  const status: SubscriberStatus =
-    data.status === "inactive" ||
-    data.status === "unsubscribed"
-      ? data.status
+  const normalizedStatus =
+    isSubscriberStatus(subscriber.status)
+      ? subscriber.status
       : "active";
 
-  const source =
-    typeof data.source === "string" &&
-    data.source.trim().length > 0
-      ? data.source.trim()
+  const normalizedSource =
+    typeof subscriber.source === "string" &&
+    subscriber.source.trim().length > 0
+      ? subscriber.source.trim()
       : "website";
 
-  const subscribedAt =
-    data.subscribedAt instanceof Timestamp
-      ? data.subscribedAt
-      : data.createdAt instanceof Timestamp
-        ? data.createdAt
+  const normalizedSubscribedAt =
+    subscriber.subscribedAt instanceof Timestamp
+      ? subscriber.subscribedAt
+      : subscriber.createdAt instanceof Timestamp
+        ? subscriber.createdAt
         : null;
 
   return {
-    id,
+    ...subscriber,
+    id: documentId,
     email,
-    status,
-    source,
-    subscribedAt,
-    welcomeEmailSent: data.welcomeEmailSent === true,
+    status: normalizedStatus,
+    source: normalizedSource,
+    subscribedAt: normalizedSubscribedAt,
+    welcomeEmailSent:
+      subscriber.welcomeEmailSent === true,
   };
 }
 
-function formatTimestamp(timestamp: Timestamp | null) {
+function formatTimestamp(
+  timestamp: Timestamp | null,
+): string {
   if (!timestamp) {
     return "Not available";
   }
@@ -112,8 +128,12 @@ function formatTimestamp(timestamp: Timestamp | null) {
   return timestamp.toDate().toLocaleString();
 }
 
-function escapeCsvValue(value: string) {
-  return `"${value.replace(/"/g, '""')}"`;
+function escapeCsvValue(value: string): string {
+  const formulaSafeValue = /^[=+\-@]/.test(value)
+    ? `'${value}`
+    : value;
+
+  return `"${formulaSafeValue.replace(/"/g, '""')}"`;
 }
 
 export default function SubscribersPage() {
@@ -121,15 +141,17 @@ export default function SubscribersPage() {
   const { toast } = useToast();
 
   const [subscriberList, setSubscriberList] =
-    React.useState<Subscriber[]>([]);
+    React.useState<SubscriberRow[]>([]);
   const [searchTerm, setSearchTerm] =
     React.useState("");
   const [statusFilter, setStatusFilter] =
     React.useState<StatusFilter>("all");
   const [isLoading, setIsLoading] =
     React.useState(true);
-  const [updatingSubscriberId, setUpdatingSubscriberId] =
-    React.useState<string | null>(null);
+  const [
+    updatingSubscriberId,
+    setUpdatingSubscriberId,
+  ] = React.useState<string | null>(null);
 
   const fetchSubscribers = React.useCallback(
     async () => {
@@ -140,17 +162,21 @@ export default function SubscribersPage() {
       setIsLoading(true);
 
       try {
-        const subscriptionsRef = collection(
+        const subscriptionsCollection = collection(
           db,
-          NEWSLETTER_SUBSCRIPTIONS_COLLECTION,
-        );
+          COLLECTIONS.newsletterSubscriptions,
+        ).withConverter(newsletterSubscriberConverter);
 
         const subscriptionsQuery =
           statusFilter === "all"
-            ? query(subscriptionsRef)
+            ? query(subscriptionsCollection)
             : query(
-                subscriptionsRef,
-                where("status", "==", statusFilter),
+                subscriptionsCollection,
+                where(
+                  "status",
+                  "==",
+                  statusFilter,
+                ),
               );
 
         const querySnapshot = await getDocs(
@@ -168,19 +194,27 @@ export default function SubscribersPage() {
             .filter(
               (
                 subscriber,
-              ): subscriber is Subscriber =>
+              ): subscriber is SubscriberRow =>
                 subscriber !== null,
             )
-            .sort((firstSubscriber, secondSubscriber) => {
-              const firstTime =
-                firstSubscriber.subscribedAt?.toMillis() ??
-                0;
-              const secondTime =
-                secondSubscriber.subscribedAt?.toMillis() ??
-                0;
+            .sort(
+              (
+                firstSubscriber,
+                secondSubscriber,
+              ) => {
+                const firstTimestamp =
+                  firstSubscriber.subscribedAt?.toMillis() ??
+                  0;
 
-              return secondTime - firstTime;
-            });
+                const secondTimestamp =
+                  secondSubscriber.subscribedAt?.toMillis() ??
+                  0;
+
+                return (
+                  secondTimestamp - firstTimestamp
+                );
+              },
+            );
 
         setSubscriberList(normalizedSubscribers);
       } catch (fetchError) {
@@ -207,29 +241,34 @@ export default function SubscribersPage() {
   React.useEffect(() => {
     if (status === "ready") {
       void fetchSubscribers();
-    } else if (status === "error") {
+      return;
+    }
+
+    if (status === "error") {
       setIsLoading(false);
     }
   }, [fetchSubscribers, status]);
 
-  const filteredSubscribers = React.useMemo(() => {
-    const normalizedSearchTerm = searchTerm
-      .trim()
-      .toLowerCase();
+  const filteredSubscribers =
+    React.useMemo(() => {
+      const normalizedSearchTerm = searchTerm
+        .trim()
+        .toLowerCase();
 
-    if (!normalizedSearchTerm) {
-      return subscriberList;
-    }
+      if (!normalizedSearchTerm) {
+        return subscriberList;
+      }
 
-    return subscriberList.filter((subscriber) =>
-      subscriber.email
-        .toLowerCase()
-        .includes(normalizedSearchTerm),
-    );
-  }, [searchTerm, subscriberList]);
+      return subscriberList.filter(
+        (subscriber) =>
+          subscriber.email
+            .toLowerCase()
+            .includes(normalizedSearchTerm),
+      );
+    }, [searchTerm, subscriberList]);
 
   async function handleStatusChange(
-    subscriber: Subscriber,
+    subscriber: SubscriberRow,
   ) {
     if (!db) {
       toast({
@@ -242,7 +281,7 @@ export default function SubscribersPage() {
       return;
     }
 
-    const newStatus: SubscriberStatus =
+    const newStatus: NewsletterSubscriberStatus =
       subscriber.status === "active"
         ? "inactive"
         : "active";
@@ -250,32 +289,23 @@ export default function SubscribersPage() {
     setUpdatingSubscriberId(subscriber.id);
 
     try {
-      const subscriberRef = doc(
+      const subscriberReference = doc(
         db,
-        NEWSLETTER_SUBSCRIPTIONS_COLLECTION,
+        COLLECTIONS.newsletterSubscriptions,
         subscriber.id,
-      );
+      ).withConverter(newsletterSubscriberConverter);
 
-      await updateDoc(subscriberRef, {
+      await updateDoc(subscriberReference, {
         status: newStatus,
         updatedAt: serverTimestamp(),
       });
-
-      setSubscriberList((currentSubscribers) =>
-        currentSubscribers.map((currentSubscriber) =>
-          currentSubscriber.id === subscriber.id
-            ? {
-                ...currentSubscriber,
-                status: newStatus,
-              }
-            : currentSubscriber,
-        ),
-      );
 
       toast({
         title: "Subscriber updated",
         description: `${subscriber.email} is now ${newStatus}.`,
       });
+
+      await fetchSubscribers();
     } catch (updateError) {
       console.error(
         "Failed to update subscriber status:",
@@ -319,8 +349,12 @@ export default function SubscribersPage() {
         subscriber.email,
         subscriber.status,
         subscriber.source,
-        formatTimestamp(subscriber.subscribedAt),
-        subscriber.welcomeEmailSent ? "Yes" : "No",
+        formatTimestamp(
+          subscriber.subscribedAt,
+        ),
+        subscriber.welcomeEmailSent
+          ? "Yes"
+          : "No",
       ],
     );
 
@@ -334,9 +368,12 @@ export default function SubscribersPage() {
       )
       .join("\n");
 
-    const csvBlob = new Blob([csvContent], {
-      type: "text/csv;charset=utf-8",
-    });
+    const csvBlob = new Blob(
+      [`\uFEFF${csvContent}`],
+      {
+        type: "text/csv;charset=utf-8",
+      },
+    );
 
     const downloadUrl =
       URL.createObjectURL(csvBlob);
@@ -404,6 +441,7 @@ export default function SubscribersPage() {
           <Input
             type="search"
             placeholder="Search subscribers..."
+            aria-label="Search newsletter subscribers"
             value={searchTerm}
             onChange={(event) =>
               setSearchTerm(event.target.value)
@@ -414,9 +452,11 @@ export default function SubscribersPage() {
           <div className="flex flex-col gap-2 sm:flex-row">
             <Select
               value={statusFilter}
-              onValueChange={(value: StatusFilter) =>
-                setStatusFilter(value)
-              }
+              onValueChange={(value) => {
+                if (isStatusFilter(value)) {
+                  setStatusFilter(value);
+                }
+              }}
             >
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by status" />
