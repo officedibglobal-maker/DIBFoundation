@@ -20,20 +20,12 @@ export interface FirebaseServices {
   storage: FirebaseStorage;
 }
 
-let app: FirebaseApp;
-let db: Firestore;
-let auth: Auth;
-let storage: FirebaseStorage;
-
-if (typeof window !== "undefined") {
-    app = getApps().length > 0
+const app: FirebaseApp = getApps().length > 0
     ? getApp()
     : initializeApp(firebaseConfig);
 
-    db = getFirestore(app);
-    auth = getAuth(app);
-    storage = getStorage(app);
-}
+const db: Firestore = getFirestore(app);
+const auth: Auth = getAuth(app);
+const storage: FirebaseStorage = getStorage(app);
 
-// @ts-ignore
 export { app, db, auth, storage };

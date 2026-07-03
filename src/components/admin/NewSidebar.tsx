@@ -77,6 +77,14 @@ const sidebarNavItems: NavItem[] = [
       { title: "Settings", href: "/admin/impact-store/settings", icon: Settings },
     ],
   },
+  {
+    title: "Advertising",
+    icon: ShoppingCart,
+    children: [
+      { title: "Overview", href: "/admin/advertising", icon: BarChart2 },
+      { title: "Advertisers", href: "/admin/advertisers", icon: Users },
+    ],
+  },
     {
     title: "Engagement",
     icon: Mail,

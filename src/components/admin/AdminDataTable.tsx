@@ -7,6 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { StoredDocument } from "@/types/firestore";
 import { ReactNode } from "react";
 
 // A column can be a simple string or an object with key and label
@@ -17,13 +18,13 @@ interface Column {
 
 type ColumnType = string | Column;
 
-interface AdminDataTableProps {
+interface AdminDataTableProps<T extends StoredDocument> {
   columns: ColumnType[];
-  data: any[];
-  actions?: (item: any) => ReactNode;
+  data: T[];
+  actions?: (item: T) => ReactNode;
 }
 
-export default function AdminDataTable({ columns, data, actions }: AdminDataTableProps) {
+export default function AdminDataTable<T extends StoredDocument>({ columns, data, actions }: AdminDataTableProps<T>) {
   const formatCell = (cell: any) => {
     if (cell && typeof cell.toDate === 'function') {
       return cell.toDate().toLocaleString();
@@ -64,9 +65,9 @@ export default function AdminDataTable({ columns, data, actions }: AdminDataTabl
         <TableBody>
           {data.length > 0 ? (
             data.map((row) => (
-              <TableRow key={row.docId || row.id}>
+              <TableRow key={row.id}>
                 {columns.map((column, index) => (
-                  <TableCell key={index}>{formatCell(row[getColumnKey(column)])}</TableCell>
+                  <TableCell key={index}>{formatCell(row[getColumnKey(column) as keyof T])}</TableCell>
                 ))}
                 {actions && <TableCell className="text-right">{actions(row)}</TableCell>}
               </TableRow>

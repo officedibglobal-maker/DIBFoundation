@@ -3,17 +3,33 @@ import { FieldValue, Timestamp } from "firebase/firestore";
 
 export type ContentStatus = "draft" | "published" | "archived";
 
+export type AdvertiserStatus = "active" | "inactive" | "blocked";
+
+export type NewsletterCampaignStatus =
+  | "draft"
+  | "under_review"
+  | "approved"
+  | "sending"
+  | "sent"
+  | "failed"
+  | "cancelled";
+
+export type PaymentStatus = "pending" | "paid" | "refunded" | "waived" | "test";
+
+export type CampaignType = "editorial" | "sponsored";
+
+
 export interface BaseDocument {
   id?: string;
   createdAt?: Timestamp | FieldValue | null;
   updatedAt?: Timestamp | FieldValue | null;
 }
 
-export interface StoredDocument extends BaseDocument {
+export type StoredDocument<
+  T extends BaseDocument = BaseDocument
+> = Omit<T, "id"> & {
   id: string;
-  createdAt: Timestamp | null;
-  updatedAt: Timestamp | null;
-}
+};
 
 export type DocumentWrite<T> = Omit<T, "id" | "createdAt" | "updatedAt"> & {
   createdAt?: Timestamp | FieldValue | null;
