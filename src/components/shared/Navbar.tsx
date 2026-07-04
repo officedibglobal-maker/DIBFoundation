@@ -47,6 +47,7 @@ const NAV_ITEMS: NavItem[] = [
         items: [
           { href: '/about', label: 'Who We Are' },
           { href: '/about/mission-vision', label: 'Mission & Vision' },
+          { href: '/about/our-team', label: 'Our Team' },
           {
             href: '/about/leadership-governance',
             label: 'Leadership & Governance',
