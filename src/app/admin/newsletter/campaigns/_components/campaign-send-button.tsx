@@ -1,33 +1,57 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+
+import { sendCampaign } from "@/app/admin/newsletter/campaigns/_actions/send-campaign";
 import { Button } from "@/components/ui/button";
-import { NewsletterCampaignStatus } from "@/types/newsletter-campaign";
-import { sendCampaign } from "../_actions/send-campaign";
-import { useTransition } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { type NewsletterCampaignStatus } from "@/types/newsletter-campaign";
 
-export function CampaignSendButton({ campaignId, campaignStatus }: { campaignId: string, campaignStatus: NewsletterCampaignStatus }) {
+interface CampaignSendButtonProps {
+  id: string;
+  status: NewsletterCampaignStatus;
+}
+
+export function CampaignSendButton({ id, status }: CampaignSendButtonProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const { toast } = useToast();
+  const [message, setMessage] = useState<string | null>(null);
 
-  const handleSend = () => {
-    if (confirm("Are you sure you want to send this campaign?")) {
-      startTransition(async () => {
-        try {
-          await sendCampaign(campaignId);
-          toast({ title: "Campaign sent successfully" });
-        } catch (error) {
-          toast({ title: "Failed to send campaign", description: error.message, variant: "destructive" });
-        }
-      });
-    }
-  };
+  const isSent = status === "sent";
+  const isSending = status === "sending";
+  const canSend = status === "draft" || status === "failed";
 
-  const canSend = campaignStatus === NewsletterCampaignStatus.Draft || campaignStatus === NewsletterCampaignStatus.Failed;
+  function handleSend() {
+    const confirmed = window.confirm(
+      "Send this campaign to all active subscribers? This cannot be undone."
+    );
 
-  if (!canSend) {
-    return <Button disabled>Sent</Button>;
+    if (!confirmed) return;
+
+    setMessage(null);
+
+    startTransition(async () => {
+      const result = await sendCampaign(id);
+      setMessage(result.message || null);
+      router.refresh();
+    });
   }
 
-  return <Button onClick={handleSend} disabled={isPending}>{isPending ? "Sending..." : "Send Campaign"}</Button>;
+  return (
+    <div className="space-y-2">
+      <Button onClick={handleSend} disabled={!canSend || isPending}>
+        {isPending
+          ? "Sending..."
+          : isSent
+            ? "Already Sent"
+            : isSending
+              ? "Sending..."
+              : "Send Campaign"}
+      </Button>
+
+      {message ? (
+        <p className="text-sm text-muted-foreground">{message}</p>
+      ) : null}
+    </div>
+  );
 }

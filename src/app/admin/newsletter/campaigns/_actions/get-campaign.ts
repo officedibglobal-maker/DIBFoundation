@@ -1,27 +1,77 @@
 "use server";
 
-import { newsletterCampaignsCollection } from "@/lib/firestore/collections";
-import { serialize } from "@/lib/firestore/serialize";
-import { SerializedNewsletterCampaign } from "@/types/newsletter-campaign";
-import { notFound } from "next/navigation";
+import { adminDb } from "@/firebase/admin";
+import { COLLECTIONS } from "@/lib/firestore/collection-names";
+import {
+  type NewsletterCampaignStatus,
+  type SerializedNewsletterCampaign,
+} from "@/types/newsletter-campaign";
 
-/**
- * Get a single newsletter campaign from Firestore.
- *
- * @param id The ID of the campaign to get.
- * @returns The serialized campaign data.
- * @throws {Error} If the campaign is not found.
- */
-export async function getCampaign(
-  id: string,
-): Promise<SerializedNewsletterCampaign> {
-  const campaignDoc = await newsletterCampaignsCollection.doc(id).get();
+function serializeDate(value: unknown): string | null {
+  if (!value) return null;
 
-  if (!campaignDoc.exists) {
-    notFound();
+  if (value instanceof Date) {
+    return value.toISOString();
   }
 
-  const campaign = campaignDoc.data()!;
+  if (typeof value === "string") {
+    return value;
+  }
 
-  return serialize(campaign);
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "toDate" in value &&
+    typeof value.toDate === "function"
+  ) {
+    return value.toDate().toISOString();
+  }
+
+  return null;
+}
+
+function normalizeStatus(value: unknown): NewsletterCampaignStatus {
+  if (
+    value === "draft" ||
+    value === "sending" ||
+    value === "sent" ||
+    value === "failed"
+  ) {
+    return value;
+  }
+
+  return "draft";
+}
+
+export async function getCampaign(
+  id: string
+): Promise<SerializedNewsletterCampaign | null> {
+  const docSnap = await adminDb
+    .collection(COLLECTIONS.newsletterCampaigns)
+    .doc(id)
+    .get();
+
+  if (!docSnap.exists) {
+    return null;
+  }
+
+  const data = docSnap.data() || {};
+
+  return {
+    id: docSnap.id,
+    title: typeof data.title === "string" ? data.title : "",
+    subject: typeof data.subject === "string" ? data.subject : "",
+    previewText: typeof data.previewText === "string" ? data.previewText : "",
+    bodyHtml: typeof data.bodyHtml === "string" ? data.bodyHtml : "",
+    bodyText: typeof data.bodyText === "string" ? data.bodyText : "",
+    status: normalizeStatus(data.status),
+    recipientCount:
+      typeof data.recipientCount === "number" ? data.recipientCount : 0,
+    sentCount: typeof data.sentCount === "number" ? data.sentCount : 0,
+    failedCount: typeof data.failedCount === "number" ? data.failedCount : 0,
+    lastError: typeof data.lastError === "string" ? data.lastError : null,
+    createdAt: serializeDate(data.createdAt),
+    updatedAt: serializeDate(data.updatedAt),
+    sentAt: serializeDate(data.sentAt),
+  };
 }

@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { createCampaign } from "@/app/admin/newsletter/campaigns/_actions/create-campaign";
+import { updateCampaign } from "@/app/admin/newsletter/campaigns/_actions/update-campaign";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -18,6 +19,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { type SerializedNewsletterCampaign } from "@/types/newsletter-campaign";
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -27,30 +29,49 @@ const formSchema = z.object({
   bodyText: z.string().optional(),
 });
 
-export function CampaignForm() {
+type CampaignFormValues = z.infer<typeof formSchema>;
+
+interface CampaignFormProps {
+  campaign?: SerializedNewsletterCampaign;
+}
+
+export function CampaignForm({ campaign }: CampaignFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const isReadOnly =
+    campaign?.status === "sent" || campaign?.status === "sending";
+
+  const form = useForm<CampaignFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: "",
-      subject: "",
-      previewText: "",
-      bodyHtml: "",
-      bodyText: "",
+      title: campaign?.title ?? "",
+      subject: campaign?.subject ?? "",
+      previewText: campaign?.previewText ?? "",
+      bodyHtml: campaign?.bodyHtml ?? "",
+      bodyText: campaign?.bodyText ?? "",
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  function onSubmit(values: CampaignFormValues) {
     setError(null);
 
     startTransition(async () => {
-      const result = await createCampaign(values);
+      const result =
+        campaign && campaign.id
+          ? await updateCampaign(campaign.id, values)
+          : await createCampaign(values);
 
       if (!result.success) {
-        setError(result.error || "Failed to create campaign.");
+        const message =
+          "message" in result
+            ? result.message
+            : "error" in result
+              ? result.error
+              : "Failed to save campaign.";
+
+        setError(message || "Failed to save campaign.");
         return;
       }
 
@@ -60,6 +81,18 @@ export function CampaignForm() {
   }
 
   const bodyHtml = form.watch("bodyHtml");
+
+  if (isReadOnly) {
+    return (
+      <div className="rounded-md border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
+        <h2 className="font-semibold">Campaign is locked</h2>
+        <p className="mt-1">
+          This campaign has status "{campaign.status}" and can no longer be
+          edited.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <Form {...form}>
@@ -94,7 +127,10 @@ export function CampaignForm() {
             <FormItem>
               <FormLabel>Email subject</FormLabel>
               <FormControl>
-                <Input placeholder="See what your support made possible" {...field} />
+                <Input
+                  placeholder="See what your support made possible"
+                  {...field}
+                />
               </FormControl>
               <FormDescription>
                 This is the subject subscribers will see.
@@ -116,6 +152,9 @@ export function CampaignForm() {
                   {...field}
                 />
               </FormControl>
+              <FormDescription>
+                Optional inbox preview text.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -178,7 +217,13 @@ export function CampaignForm() {
         </div>
 
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving..." : "Save Draft"}
+          {isPending
+            ? campaign
+              ? "Updating..."
+              : "Saving..."
+            : campaign
+              ? "Update Campaign"
+              : "Save Draft"}
         </Button>
       </form>
     </Form>

@@ -1,99 +1,229 @@
 "use server";
 
-import { newsletterCampaignsCollection, newsletterSubscribersCollection } from "@/lib/firestore/collections";
-import { NewsletterCampaignStatus } from "@/types/newsletter-campaign";
-import { NewsletterSubscriber } from "@/types/newsletter-subscriber";
-import { Timestamp } from "firebase-admin/firestore";
 import { revalidatePath } from "next/cache";
 
-const BREVO_API_KEY = process.env.BREVO_API_KEY;
-const BREVO_SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL;
-const BREVO_SENDER_NAME = process.env.BREVO_SENDER_NAME;
+import { adminDb } from "@/firebase/admin";
+import { COLLECTIONS } from "@/lib/firestore/collection-names";
 
-async function sendEmail(campaign, subscriber) {
-  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
-    method: "POST",
-    headers: {
-      "api-key": BREVO_API_KEY,
-      "content-type": "application/json",
-      accept: "application/json",
-    },
-    body: JSON.stringify({
-      sender: {
-        name: BREVO_SENDER_NAME,
-        email: BREVO_SENDER_EMAIL,
-      },
-      to: [{ email: subscriber.email }],
-      subject: campaign.subject,
-      htmlContent: campaign.bodyHtml,
-      textContent: campaign.bodyText || campaign.previewText || "",
-    }),
-  });
-  if (!response.ok) {
-    throw new Error(await response.text());
+type ActiveSubscriber = {
+  email: string;
+};
+
+async function getActiveSubscribers(): Promise<ActiveSubscriber[]> {
+  const collectionNames = Array.from(
+    new Set(["newsletterSubscriptions", COLLECTIONS.newsletterSubscribers])
+  );
+
+  const subscribersByEmail = new Map<string, ActiveSubscriber>();
+
+  for (const collectionName of collectionNames) {
+    const snapshot = await adminDb.collection(collectionName).get();
+
+    snapshot.docs.forEach((subscriberDoc) => {
+      const subscriber = subscriberDoc.data();
+      const email = subscriber.email;
+      const status = subscriber.status;
+
+      if (
+        typeof email === "string" &&
+        email.includes("@") &&
+        (status === undefined || status === "active")
+      ) {
+        subscribersByEmail.set(email.toLowerCase(), { email });
+      }
+    });
   }
+
+  return Array.from(subscribersByEmail.values());
 }
 
-export async function sendCampaign(id: string): Promise<void> {
-  const campaignRef = newsletterCampaignsCollection.doc(id);
-  const campaignDoc = await campaignRef.get();
+function stripHtml(value: string): string {
+  return value
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
-  if (!campaignDoc.exists) {
-    throw new Error("Campaign not found");
+function buildTextContent(campaign: Record<string, unknown>): string {
+  const bodyText =
+    typeof campaign.bodyText === "string" ? campaign.bodyText.trim() : "";
+
+  if (bodyText) return bodyText;
+
+  const previewText =
+    typeof campaign.previewText === "string" ? campaign.previewText.trim() : "";
+
+  const bodyHtml =
+    typeof campaign.bodyHtml === "string" ? campaign.bodyHtml.trim() : "";
+
+  const strippedHtml = bodyHtml ? stripHtml(bodyHtml) : "";
+
+  return (
+    strippedHtml ||
+    previewText ||
+    "DIB Foundation newsletter update."
+  );
+}
+
+function buildHtmlContent(campaign: Record<string, unknown>): string {
+  const bodyHtml =
+    typeof campaign.bodyHtml === "string" ? campaign.bodyHtml.trim() : "";
+
+  if (bodyHtml) return bodyHtml;
+
+  return "<p>DIB Foundation newsletter update.</p>";
+}
+
+export async function sendCampaign(
+  id: string
+): Promise<{ success: boolean; message?: string }> {
+  const campaignRef = adminDb.collection(COLLECTIONS.newsletterCampaigns).doc(id);
+  const campaignSnap = await campaignRef.get();
+
+  if (!campaignSnap.exists) {
+    return {
+      success: false,
+      message: "Campaign not found.",
+    };
   }
 
-  const campaign = campaignDoc.data()!;
+  const campaign = campaignSnap.data() || {};
 
   if (campaign.status === "sent") {
-    return;
+    return {
+      success: false,
+      message: "This campaign has already been sent.",
+    };
   }
 
-  if (!BREVO_API_KEY || !BREVO_SENDER_EMAIL || !BREVO_SENDER_NAME) {
-    await campaignRef.update({
-      status: NewsletterCampaignStatus.Failed,
-      lastError: "Brevo API key, sender email, or sender name is not configured.",
-      updatedAt: Timestamp.now(),
-    });
-    return;
+  if (campaign.status === "sending") {
+    return {
+      success: false,
+      message: "This campaign is already sending.",
+    };
   }
+
+  const brevoApiKey = process.env.BREVO_API_KEY;
+  const brevoSenderEmail = process.env.BREVO_SENDER_EMAIL;
+  const brevoSenderName = process.env.BREVO_SENDER_NAME;
+
+  async function markFailed(message: string, failedCount = 0) {
+    await campaignRef.update({
+      status: "failed",
+      failedCount,
+      lastError: message,
+      updatedAt: new Date(),
+    });
+
+    revalidatePath("/admin/newsletter/campaigns");
+    revalidatePath(`/admin/newsletter/campaigns/${id}`);
+
+    return {
+      success: false,
+      message,
+    };
+  }
+
+  if (!brevoApiKey || !brevoSenderEmail || !brevoSenderName) {
+    return markFailed("Brevo API configuration is missing in .env.local.");
+  }
+
+  const activeSubscribers = await getActiveSubscribers();
+
+  if (activeSubscribers.length === 0) {
+    return markFailed("There are no active subscribers to send this campaign to.");
+  }
+
+  const subject =
+    typeof campaign.subject === "string" && campaign.subject.trim()
+      ? campaign.subject.trim()
+      : "DIB Foundation Newsletter";
+
+  const htmlContent = buildHtmlContent(campaign);
+  const textContent = buildTextContent(campaign);
 
   await campaignRef.update({
-    status: NewsletterCampaignStatus.Sending,
-    updatedAt: Timestamp.now(),
+    status: "sending",
+    recipientCount: activeSubscribers.length,
+    sentCount: 0,
+    failedCount: 0,
+    lastError: null,
+    updatedAt: new Date(),
   });
-
-  const subscribersSnapshot = await newsletterSubscribersCollection
-    .where("status", "in", ["active", null])
-    .get();
-
-  const subscribers = subscribersSnapshot.docs.map(
-    (doc) => doc.data() as NewsletterSubscriber,
-  );
 
   let sentCount = 0;
   let failedCount = 0;
-  let lastError = null;
+  const errors: string[] = [];
 
-  for (const subscriber of subscribers) {
+  for (const subscriber of activeSubscribers) {
     try {
-      await sendEmail(campaign, subscriber);
-      sentCount++;
+      const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "api-key": brevoApiKey,
+          "content-type": "application/json",
+          accept: "application/json",
+        },
+        body: JSON.stringify({
+          sender: {
+            name: brevoSenderName,
+            email: brevoSenderEmail,
+          },
+          to: [{ email: subscriber.email }],
+          subject,
+          htmlContent,
+          textContent,
+        }),
+      });
+
+      if (response.ok) {
+        sentCount++;
+      } else {
+        failedCount++;
+        const errorText = await response.text();
+        errors.push(errorText);
+      }
     } catch (error) {
       failedCount++;
-      lastError = error.message;
+      errors.push(error instanceof Error ? error.message : "Unknown send error.");
     }
   }
 
+  const allFailed = failedCount === activeSubscribers.length;
+
   await campaignRef.update({
-    status: failedCount > 0 ? NewsletterCampaignStatus.Failed : NewsletterCampaignStatus.Sent,
-    recipientCount: subscribers.length,
+    status: allFailed ? "failed" : "sent",
+    recipientCount: activeSubscribers.length,
     sentCount,
     failedCount,
-    sentAt: Timestamp.now(),
-    updatedAt: Timestamp.now(),
-    lastError,
+    sentAt: sentCount > 0 ? new Date() : null,
+    updatedAt: new Date(),
+    lastError:
+      failedCount > 0
+        ? `${failedCount} email(s) failed. ${errors[0] || ""}`.trim()
+        : null,
   });
 
-  revalidatePath(`/admin/newsletter/campaigns/${id}`);
   revalidatePath("/admin/newsletter/campaigns");
+  revalidatePath(`/admin/newsletter/campaigns/${id}`);
+
+  if (sentCount === 0) {
+    return {
+      success: false,
+      message: "Campaign failed to send to all subscribers.",
+    };
+  }
+
+  return {
+    success: true,
+    message: `Campaign sent to ${sentCount} subscriber(s).`,
+  };
 }
