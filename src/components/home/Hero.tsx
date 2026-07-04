@@ -1,17 +1,11 @@
-
 'use client';
 
 import * as React from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import {
-  collection,
-  onSnapshot,
-  type DocumentData,
-} from 'firebase/firestore';
+import { collection, onSnapshot, type DocumentData } from 'firebase/firestore';
 
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useFirebase } from '@/firebase/client-provider';
 import { COLLECTIONS } from '@/lib/firestore/collections';
@@ -23,29 +17,20 @@ type DisplayHeroSlide = {
   eyebrow: string;
   subtitle: string;
   description: string;
-
   imageUrl: string;
   mobileImageUrl: string;
   imageAlt: string;
-
   primaryCtaLabel: string;
   primaryCtaUrl: string;
-
   secondaryCtaLabel: string;
   secondaryCtaUrl: string;
-
   isActive: boolean;
   order: number;
-
   publishStartAt: unknown;
   publishEndAt: unknown;
 };
 
-function getString(
-  data: DocumentData,
-  fieldNames: string[],
-  fallback = ''
-): string {
+function getString(data: DocumentData, fieldNames: string[], fallback = ''): string {
   for (const fieldName of fieldNames) {
     const value = data[fieldName];
 
@@ -57,11 +42,7 @@ function getString(
   return fallback;
 }
 
-function getNumber(
-  data: DocumentData,
-  fieldNames: string[],
-  fallback = 0
-): number {
+function getNumber(data: DocumentData, fieldNames: string[], fallback = 0): number {
   for (const fieldName of fieldNames) {
     const value = data[fieldName];
 
@@ -69,11 +50,7 @@ function getNumber(
       return value;
     }
 
-    if (
-      typeof value === 'string' &&
-      value.trim() &&
-      Number.isFinite(Number(value))
-    ) {
+    if (typeof value === 'string' && value.trim() && Number.isFinite(Number(value))) {
       return Number(value);
     }
   }
@@ -82,25 +59,14 @@ function getNumber(
 }
 
 function getActiveStatus(data: DocumentData): boolean {
-  if (typeof data.isActive === 'boolean') {
-    return data.isActive;
-  }
+  if (typeof data.isActive === 'boolean') return data.isActive;
+  if (typeof data.active === 'boolean') return data.active;
 
-  if (typeof data.active === 'boolean') {
-    return data.active;
-  }
-
-  /*
-   * Existing seeded records may not have either field.
-   * Treat those legacy records as active instead of hiding them.
-   */
   return true;
 }
 
 function toDate(value: unknown): Date | null {
-  if (!value) {
-    return null;
-  }
+  if (!value) return null;
 
   if (value instanceof Date) {
     return Number.isNaN(value.getTime()) ? null : value;
@@ -113,26 +79,15 @@ function toDate(value: unknown): Date | null {
     typeof (value as { toDate?: unknown }).toDate === 'function'
   ) {
     try {
-      const convertedDate = (
-        value as { toDate: () => Date }
-      ).toDate();
-
-      return Number.isNaN(convertedDate.getTime())
-        ? null
-        : convertedDate;
+      const convertedDate = (value as { toDate: () => Date }).toDate();
+      return Number.isNaN(convertedDate.getTime()) ? null : convertedDate;
     } catch {
       return null;
     }
   }
 
-  if (
-    typeof value === 'object' &&
-    value !== null &&
-    'seconds' in value
-  ) {
-    const seconds = Number(
-      (value as { seconds?: unknown }).seconds
-    );
+  if (typeof value === 'object' && value !== null && 'seconds' in value) {
+    const seconds = Number((value as { seconds?: unknown }).seconds);
 
     if (Number.isFinite(seconds)) {
       return new Date(seconds * 1000);
@@ -142,18 +97,13 @@ function toDate(value: unknown): Date | null {
   if (typeof value === 'string' || typeof value === 'number') {
     const convertedDate = new Date(value);
 
-    return Number.isNaN(convertedDate.getTime())
-      ? null
-      : convertedDate;
+    return Number.isNaN(convertedDate.getTime()) ? null : convertedDate;
   }
 
   return null;
 }
 
-function normalizeHeroSlide(
-  id: string,
-  data: DocumentData
-): DisplayHeroSlide {
+function normalizeHeroSlide(id: string, data: DocumentData): DisplayHeroSlide {
   const desktopImageUrl = getString(data, [
     'imageUrl',
     'desktopImageUrl',
@@ -165,32 +115,21 @@ function normalizeHeroSlide(
   return {
     id,
 
-    title: getString(data, ['title', 'heading'], 'Doctors in Business Foundation'),
+    title: getString(
+      data,
+      ['title', 'heading'],
+      'Advancing Health, Human Dignity, and Sustainable Development'
+    ),
 
-    eyebrow: getString(data, [
-      'eyebrow',
-      'kicker',
-      'label',
-    ]),
+    eyebrow: getString(data, ['eyebrow', 'kicker', 'label']),
 
-    subtitle: getString(data, [
-      'subtitle',
-      'subheading',
-    ]),
+    subtitle: getString(data, ['subtitle', 'subheading']),
 
-    description: getString(data, [
-      'description',
-      'body',
-      'content',
-    ]),
+    description: getString(data, ['description', 'body', 'content']),
 
     imageUrl: desktopImageUrl,
 
-    mobileImageUrl: getString(
-      data,
-      ['mobileImageUrl', 'mobileImage'],
-      desktopImageUrl
-    ),
+    mobileImageUrl: getString(data, ['mobileImageUrl', 'mobileImage'], desktopImageUrl),
 
     imageAlt: getString(
       data,
@@ -212,41 +151,22 @@ function normalizeHeroSlide(
       'ctaUrl',
     ]),
 
-    secondaryCtaLabel: getString(data, [
-      'secondaryCtaLabel',
-      'secondaryButtonText',
-    ]),
+    secondaryCtaLabel: getString(data, ['secondaryCtaLabel', 'secondaryButtonText']),
 
-    secondaryCtaUrl: getString(data, [
-      'secondaryCtaUrl',
-      'secondaryButtonUrl',
-    ]),
+    secondaryCtaUrl: getString(data, ['secondaryCtaUrl', 'secondaryButtonUrl']),
 
     isActive: getActiveStatus(data),
 
     order: getNumber(data, ['order', 'sortOrder'], 999),
 
-    publishStartAt:
-      data.publishStartAt ??
-      data.publishStartDate ??
-      data.startAt ??
-      null,
+    publishStartAt: data.publishStartAt ?? data.publishStartDate ?? data.startAt ?? null,
 
-    publishEndAt:
-      data.publishEndAt ??
-      data.publishEndDate ??
-      data.endAt ??
-      null,
+    publishEndAt: data.publishEndAt ?? data.publishEndDate ?? data.endAt ?? null,
   };
 }
 
-function isPublishable(
-  slide: DisplayHeroSlide,
-  currentDate: Date
-): boolean {
-  if (!slide.isActive) {
-    return false;
-  }
+function isPublishable(slide: DisplayHeroSlide, currentDate: Date): boolean {
+  if (!slide.isActive) return false;
 
   const startDate = toDate(slide.publishStartAt);
   const endDate = toDate(slide.publishEndAt);
@@ -257,11 +177,13 @@ function isPublishable(
   return hasStarted && hasNotEnded;
 }
 
-function CtaTarget({
+function HeroCtaLink({
   href,
+  className,
   children,
 }: {
   href: string;
+  className?: string;
   children: React.ReactNode;
 }) {
   const isExternal =
@@ -273,51 +195,34 @@ function CtaTarget({
     return (
       <a
         href={href}
-        target={
-          /^https?:\/\//i.test(href)
-            ? '_blank'
-            : undefined
-        }
-        rel={
-          /^https?:\/\//i.test(href)
-            ? 'noopener noreferrer'
-            : undefined
-        }
+        target={/^https?:\/\//i.test(href) ? '_blank' : undefined}
+        rel={/^https?:\/\//i.test(href) ? 'noopener noreferrer' : undefined}
+        className={className}
       >
         {children}
       </a>
     );
   }
 
-  return <Link href={href}>{children}</Link>;
+  return (
+    <Link href={href} className={className}>
+      {children}
+    </Link>
+  );
 }
 
 export function Hero() {
   const { db } = useFirebase();
 
-  const [slides, setSlides] = React.useState<
-    DisplayHeroSlide[]
-  >([]);
+  const [slides, setSlides] = React.useState<DisplayHeroSlide[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [currentIndex, setCurrentIndex] =
-    React.useState(0);
-  const [isPaused, setIsPaused] =
-    React.useState(false);
+  const [currentIndex, setCurrentIndex] = React.useState(0);
+  const [isPaused, setIsPaused] = React.useState(false);
 
   React.useEffect(() => {
-    if (!db) {
-      return;
-    }
+    if (!db) return;
 
-    /*
-     * Do not order the Firestore query directly.
-     * orderBy() excludes legacy documents that do not yet
-     * contain an order field. Sort safely after normalization.
-     */
-    const slidesCollection = collection(
-      db,
-      COLLECTIONS.heroSlides
-    );
+    const slidesCollection = collection(db, COLLECTIONS.heroSlides);
 
     let initialResponseReceived = false;
 
@@ -328,18 +233,10 @@ export function Hero() {
 
         const nextSlides = snapshot.docs
           .map((documentSnapshot) =>
-            normalizeHeroSlide(
-              documentSnapshot.id,
-              documentSnapshot.data()
-            )
+            normalizeHeroSlide(documentSnapshot.id, documentSnapshot.data())
           )
-          .filter((slide) =>
-            isPublishable(slide, currentDate)
-          )
-          .sort(
-            (firstSlide, secondSlide) =>
-              firstSlide.order - secondSlide.order
-          );
+          .filter((slide) => isPublishable(slide, currentDate))
+          .sort((firstSlide, secondSlide) => firstSlide.order - secondSlide.order);
 
         setSlides(nextSlides);
 
@@ -349,11 +246,7 @@ export function Hero() {
         }
       },
       (error) => {
-        console.error(
-          'Error fetching hero slides:',
-          error
-        );
-
+        console.error('Error fetching hero slides:', error);
         setLoading(false);
       }
     );
@@ -368,10 +261,7 @@ export function Hero() {
         desktopImage.src = slide.imageUrl;
       }
 
-      if (
-        slide.mobileImageUrl &&
-        slide.mobileImageUrl !== slide.imageUrl
-      ) {
+      if (slide.mobileImageUrl && slide.mobileImageUrl !== slide.imageUrl) {
         const mobileImage = new window.Image();
         mobileImage.src = slide.mobileImageUrl;
       }
@@ -380,28 +270,17 @@ export function Hero() {
 
   React.useEffect(() => {
     setCurrentIndex((previousIndex) => {
-      if (slides.length === 0) {
-        return 0;
-      }
-
-      return Math.min(
-        previousIndex,
-        slides.length - 1
-      );
+      if (slides.length === 0) return 0;
+      return Math.min(previousIndex, slides.length - 1);
     });
   }, [slides.length]);
 
   React.useEffect(() => {
-    if (slides.length <= 1 || isPaused) {
-      return;
-    }
+    if (slides.length <= 1 || isPaused) return;
 
     const timerId = window.setInterval(() => {
-      setCurrentIndex(
-        (previousIndex) =>
-          (previousIndex + 1) % slides.length
-      );
-    }, 6000);
+      setCurrentIndex((previousIndex) => (previousIndex + 1) % slides.length);
+    }, 6500);
 
     return () => {
       window.clearInterval(timerId);
@@ -409,18 +288,11 @@ export function Hero() {
   }, [slides.length, isPaused]);
 
   const handleNext = () => {
-    setCurrentIndex(
-      (previousIndex) =>
-        (previousIndex + 1) % slides.length
-    );
+    setCurrentIndex((previousIndex) => (previousIndex + 1) % slides.length);
   };
 
   const handlePrevious = () => {
-    setCurrentIndex(
-      (previousIndex) =>
-        (previousIndex - 1 + slides.length) %
-        slides.length
-    );
+    setCurrentIndex((previousIndex) => (previousIndex - 1 + slides.length) % slides.length);
   };
 
   if (loading && slides.length === 0) {
@@ -437,13 +309,22 @@ export function Hero() {
     return <DefaultHeroSection />;
   }
 
+  const eyebrowText = currentSlide.eyebrow || 'Healing Communities. Empowering Futures.';
+
   const bodyText =
     currentSlide.description ||
-    currentSlide.subtitle;
+    currentSlide.subtitle ||
+    'DIBF advances health equity, human dignity, youth empowerment, community wellbeing, and sustainable humanitarian action across Africa and underserved communities.';
+
+  const primaryCtaLabel = currentSlide.primaryCtaLabel || 'Get Involved';
+  const primaryCtaUrl = currentSlide.primaryCtaUrl || '/get-involved';
+
+  const secondaryCtaLabel = currentSlide.secondaryCtaLabel || 'Learn More';
+  const secondaryCtaUrl = currentSlide.secondaryCtaUrl || '/about';
 
   return (
     <section
-      className="relative flex min-h-[90vh] items-center overflow-hidden bg-secondary"
+      className="relative flex min-h-[620px] items-center overflow-hidden bg-secondary md:min-h-[650px] lg:min-h-[670px] xl:min-h-[690px]"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       aria-roledescription="carousel"
@@ -451,136 +332,84 @@ export function Hero() {
     >
       <div className="absolute inset-0 z-0">
         {slides.map((slide, index) => {
-          const isCurrent =
-            index === currentIndex;
+          const isCurrent = index === currentIndex;
 
           return (
             <motion.div
               key={slide.id}
               className="absolute inset-0"
               initial={false}
-              animate={{
-                opacity: isCurrent ? 1 : 0,
-              }}
-              transition={{
-                duration: 1,
-                ease: 'easeOut',
-              }}
+              animate={{ opacity: isCurrent ? 1 : 0 }}
+              transition={{ duration: 1, ease: 'easeOut' }}
               aria-hidden={!isCurrent}
-              style={{
-                pointerEvents: isCurrent
-                  ? 'auto'
-                  : 'none',
-              }}
+              style={{ pointerEvents: isCurrent ? 'auto' : 'none' }}
             >
               {slide.imageUrl ? (
                 <picture className="absolute inset-0 block">
                   {slide.mobileImageUrl ? (
-                    <source
-                      media="(max-width: 767px)"
-                      srcSet={
-                        slide.mobileImageUrl
-                      }
-                    />
+                    <source media="(max-width: 767px)" srcSet={slide.mobileImageUrl} />
                   ) : null}
 
                   <img
                     src={slide.imageUrl}
                     alt={slide.imageAlt}
                     className="h-full w-full object-cover"
-                    loading={
-                      index === 0
-                        ? 'eager'
-                        : 'lazy'
-                    }
+                    loading={index === 0 ? 'eager' : 'lazy'}
                   />
                 </picture>
               ) : (
                 <div className="absolute inset-0 bg-secondary" />
               )}
 
-              <div className="absolute inset-0 bg-gradient-to-r from-secondary/95 via-secondary/70 to-secondary/20" />
-              <div className="absolute inset-0 bg-gradient-to-t from-secondary/70 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-r from-secondary/95 via-secondary/78 to-secondary/25" />
+              <div className="absolute inset-0 bg-gradient-to-t from-secondary/75 via-secondary/10 to-transparent" />
             </motion.div>
           );
         })}
       </div>
 
-      <div className="container relative z-10 mx-auto px-4 pt-20">
-        <div className="max-w-4xl space-y-8">
+      <div className="container relative z-10 mx-auto px-4 pb-32 pt-24 md:pb-36 md:pt-24">
+        <div className="max-w-3xl">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={currentSlide.id}
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -18 }}
-              transition={{
-                duration: 0.55,
-                ease: 'easeOut',
-              }}
+              transition={{ duration: 0.55, ease: 'easeOut' }}
               className="space-y-6"
             >
               <div className="space-y-4">
-                {currentSlide.eyebrow ? (
-                  <span className="block text-sm font-bold uppercase tracking-[0.2em] text-accent">
-                    {currentSlide.eyebrow}
-                  </span>
-                ) : null}
+                <span className="block text-xs font-bold uppercase tracking-[0.28em] text-accent drop-shadow md:text-sm">
+                  {eyebrowText}
+                </span>
 
-                <h1 className="font-headline text-4xl font-bold leading-[1.05] text-white md:text-6xl lg:text-7xl">
+                <h1 className="max-w-4xl font-headline text-4xl font-extrabold leading-[1.05] tracking-tight text-white drop-shadow-[0_3px_14px_rgba(0,0,0,0.35)] md:text-5xl lg:text-6xl xl:text-[4rem]">
                   {currentSlide.title}
                 </h1>
               </div>
 
               {bodyText ? (
-                <p className="max-w-2xl font-body text-lg leading-relaxed text-white/85 md:text-xl">
+                <p className="max-w-2xl rounded-xl bg-secondary/25 p-0 font-body text-base font-medium leading-relaxed text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)] md:text-lg lg:text-xl">
                   {bodyText}
                 </p>
               ) : null}
 
-              <div className="flex flex-wrap gap-4 pt-4">
-                {currentSlide.primaryCtaLabel &&
-                currentSlide.primaryCtaUrl ? (
-                  <Button
-                    asChild
-                    size="lg"
-                    className="h-14 rounded-full bg-accent px-10 text-lg font-bold shadow-2xl transition-all hover:bg-accent/90"
-                  >
-                    <CtaTarget
-                      href={
-                        currentSlide.primaryCtaUrl
-                      }
-                    >
-                      {
-                        currentSlide.primaryCtaLabel
-                      }
-                    </CtaTarget>
-                  </Button>
-                ) : null}
+              <div className="flex flex-wrap gap-4 pt-2">
+                <HeroCtaLink
+                  href={primaryCtaUrl}
+                  className="inline-flex h-12 items-center justify-center rounded-md bg-primary px-8 text-sm font-bold text-white shadow-xl shadow-primary/25 transition-all hover:-translate-y-0.5 hover:bg-primary/90 md:h-14 md:px-10"
+                >
+                  {primaryCtaLabel}
+                </HeroCtaLink>
 
-                {currentSlide.secondaryCtaLabel &&
-                currentSlide.secondaryCtaUrl ? (
-                  <Button
-                    asChild
-                    variant="outline"
-                    size="lg"
-                    className="h-14 gap-2 rounded-full border-white/40 bg-transparent px-10 text-lg font-bold text-white hover:bg-white/10 hover:text-white"
-                  >
-                    <CtaTarget
-                      href={
-                        currentSlide.secondaryCtaUrl
-                      }
-                    >
-                      <span className="inline-flex items-center gap-2">
-                        {
-                          currentSlide.secondaryCtaLabel
-                        }
-
-                        <ChevronRight className="h-5 w-5" />
-                      </span>
-                    </CtaTarget>
-                  </Button>
-                ) : null}
+                <HeroCtaLink
+                  href={secondaryCtaUrl}
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-md border border-white/70 bg-white/10 px-8 text-sm font-bold text-white shadow-lg backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/20 md:h-14 md:px-10"
+                >
+                  {secondaryCtaLabel}
+                  <ChevronRight className="h-5 w-5" />
+                </HeroCtaLink>
               </div>
             </motion.div>
           </AnimatePresence>
@@ -588,11 +417,11 @@ export function Hero() {
       </div>
 
       {slides.length > 1 ? (
-        <div className="absolute bottom-12 left-1/2 z-20 flex -translate-x-1/2 items-center gap-4">
+        <div className="absolute bottom-16 left-1/2 z-20 flex -translate-x-1/2 items-center gap-4 md:bottom-18">
           <button
             type="button"
             onClick={handlePrevious}
-            className="p-2 text-white/60 transition-colors hover:text-white"
+            className="rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
             aria-label="Previous slide"
           >
             <ChevronLeft className="h-6 w-6" />
@@ -603,21 +432,13 @@ export function Hero() {
               <button
                 key={slide.id}
                 type="button"
-                onClick={() =>
-                  setCurrentIndex(index)
-                }
+                onClick={() => setCurrentIndex(index)}
                 className={cn(
-                  'h-1.5 rounded-full transition-all duration-500',
-                  index === currentIndex
-                    ? 'w-8 bg-accent'
-                    : 'w-2 bg-white/30 hover:bg-white/60'
+                  'h-2 rounded-full transition-all duration-500',
+                  index === currentIndex ? 'w-9 bg-accent' : 'w-2 bg-white/40 hover:bg-white/70'
                 )}
                 aria-label={`Go to slide ${index + 1}`}
-                aria-current={
-                  index === currentIndex
-                    ? 'true'
-                    : undefined
-                }
+                aria-current={index === currentIndex ? 'true' : undefined}
               />
             ))}
           </div>
@@ -625,7 +446,7 @@ export function Hero() {
           <button
             type="button"
             onClick={handleNext}
-            className="p-2 text-white/60 transition-colors hover:text-white"
+            className="rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
             aria-label="Next slide"
           >
             <ChevronRight className="h-6 w-6" />
@@ -638,21 +459,19 @@ export function Hero() {
 
 function HeroSkeleton() {
   return (
-    <section className="relative flex min-h-[90vh] items-center overflow-hidden bg-secondary">
+    <section className="relative flex min-h-[620px] items-center overflow-hidden bg-secondary md:min-h-[650px] lg:min-h-[670px] xl:min-h-[690px]">
       <Skeleton className="absolute inset-0 h-full w-full" />
 
-      <div className="container relative z-10 mx-auto px-4 pt-20">
-        <div className="max-w-4xl space-y-8">
-          <div className="space-y-6">
-            <Skeleton className="h-4 w-[250px]" />
-            <Skeleton className="h-14 w-full" />
-            <Skeleton className="h-14 w-3/4" />
-            <Skeleton className="h-8 w-1/2" />
+      <div className="container relative z-10 mx-auto px-4 pb-32 pt-24 md:pb-36 md:pt-24">
+        <div className="max-w-3xl space-y-7">
+          <Skeleton className="h-4 w-[250px]" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-3/4" />
+          <Skeleton className="h-7 w-1/2" />
 
-            <div className="flex gap-4 pt-4">
-              <Skeleton className="h-14 w-40" />
-              <Skeleton className="h-14 w-40" />
-            </div>
+          <div className="flex gap-4 pt-4">
+            <Skeleton className="h-12 w-36" />
+            <Skeleton className="h-12 w-36" />
           </div>
         </div>
       </div>
@@ -662,29 +481,42 @@ function HeroSkeleton() {
 
 function DefaultHeroSection() {
   return (
-    <section className="relative flex min-h-[90vh] items-center overflow-hidden bg-secondary">
-      <div className="container relative z-10 mx-auto px-4 pt-20">
-        <div className="max-w-4xl space-y-8 text-white">
-          <h1 className="font-headline text-4xl font-bold leading-[1.05] md:text-6xl lg:text-7xl">
-            Doctors in Business Foundation
+    <section className="relative flex min-h-[620px] items-center overflow-hidden bg-secondary md:min-h-[650px] lg:min-h-[670px] xl:min-h-[690px]">
+      <div className="absolute inset-0 bg-gradient-to-r from-secondary via-secondary/90 to-secondary/70" />
+
+      <div className="container relative z-10 mx-auto px-4 pb-32 pt-24 md:pb-36 md:pt-24">
+        <div className="max-w-3xl space-y-6 text-white">
+          <span className="block text-xs font-bold uppercase tracking-[0.28em] text-accent md:text-sm">
+            Healing Communities. Empowering Futures.
+          </span>
+
+          <h1 className="font-headline text-4xl font-extrabold leading-[1.05] tracking-tight md:text-5xl lg:text-6xl xl:text-[4rem]">
+            Advancing Health, Human Dignity, and Sustainable Development
           </h1>
 
-          <p className="max-w-2xl font-body text-lg leading-relaxed text-white/85 md:text-xl">
-            Advancing health, human dignity and sustainable
-            development through service, partnership and
-            innovation.
+          <p className="max-w-2xl font-body text-base font-medium leading-relaxed text-white md:text-lg lg:text-xl">
+            DIBF creates sustainable pathways for communities to improve lives, improve healthcare,
+            and advance human dignity through service, partnership, innovation, and purposeful giving.
           </p>
 
-          <Button
-            asChild
-            size="lg"
-            className="h-14 rounded-full bg-accent px-10 text-lg font-bold hover:bg-accent/90"
-          >
-            <Link href="/about">Learn More</Link>
-          </Button>
+          <div className="flex flex-wrap gap-4 pt-2">
+            <Link
+              href="/get-involved"
+              className="inline-flex h-12 items-center justify-center rounded-md bg-primary px-8 text-sm font-bold text-white shadow-xl shadow-primary/25 transition-all hover:-translate-y-0.5 hover:bg-primary/90 md:h-14 md:px-10"
+            >
+              Get Involved
+            </Link>
+
+            <Link
+              href="/about"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-md border border-white/70 bg-white/10 px-8 text-sm font-bold text-white shadow-lg backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/20 md:h-14 md:px-10"
+            >
+              Learn More
+              <ChevronRight className="h-5 w-5" />
+            </Link>
+          </div>
         </div>
       </div>
     </section>
   );
 }
-

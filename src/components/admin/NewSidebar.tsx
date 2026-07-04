@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -31,12 +30,14 @@ import {
   Library,
   Database,
   ShieldCheck,
-  ChevronDown,
   ChevronRight,
   LucideIcon,
 } from "lucide-react";
-import { useState } from "react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface NavItem {
   title: string;
@@ -85,7 +86,7 @@ const sidebarNavItems: NavItem[] = [
       { title: "Advertisers", href: "/admin/advertisers", icon: Users },
     ],
   },
-    {
+  {
     title: "Engagement",
     icon: Mail,
     children: [
@@ -96,6 +97,7 @@ const sidebarNavItems: NavItem[] = [
         icon: Send,
         children: [
           { title: "Subscribers", href: "/admin/newsletter/subscribers", icon: Users },
+          { title: "Campaigns", href: "/admin/newsletter/campaigns", icon: Newspaper },
           { title: "Settings", href: "/admin/newsletter/settings", icon: Settings },
         ],
       },
@@ -133,25 +135,49 @@ const sidebarNavItems: NavItem[] = [
 export function NewSidebar() {
   const pathname = usePathname();
 
-  const renderNav = (items: NavItem[], level = 0) => {
+  const isHrefActive = (href?: string) => {
+    if (!href) return false;
+
+    if (href === "/admin") {
+      return pathname === "/admin";
+    }
+
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
+
+  const hasActiveChild = (children?: NavItem[]): boolean => {
+    if (!children) return false;
+
+    return children.some((child) => {
+      return isHrefActive(child.href) || hasActiveChild(child.children);
+    });
+  };
+
+  const renderNav = (items: NavItem[]) => {
     return items.map((item) => {
-      const isActive = item.href ? pathname.startsWith(item.href) : false;
-      const isParentActive = item.children && item.children.some(child => child.href && pathname.startsWith(child.href));
+      const isActive = isHrefActive(item.href);
+      const isParentActive = hasActiveChild(item.children);
 
       if (item.children) {
         return (
           <Collapsible key={item.title} defaultOpen={isParentActive}>
-            <CollapsibleTrigger className="w-full">
-              <div className={`flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-700 hover:text-white ${isParentActive ? "bg-gray-700 text-white" : "text-gray-300"}`}>
+            <CollapsibleTrigger className="group w-full">
+              <div
+                className={`flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-700 hover:text-white ${
+                  isParentActive ? "bg-gray-700 text-white" : "text-gray-300"
+                }`}
+              >
                 <div className="flex items-center">
                   <item.icon className="mr-3 h-5 w-5" />
                   <span>{item.title}</span>
                 </div>
+
                 <ChevronRight className="h-5 w-5 transform transition-transform duration-200 group-data-[state=open]:rotate-90" />
               </div>
             </CollapsibleTrigger>
+
             <CollapsibleContent className="pl-4">
-              {renderNav(item.children, level + 1)}
+              {renderNav(item.children)}
             </CollapsibleContent>
           </Collapsible>
         );
@@ -161,9 +187,11 @@ export function NewSidebar() {
         <Link
           key={item.href}
           href={item.href!}
-          className={`group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-700 hover:text-white ${isActive ? "bg-gray-700 text-white" : "text-gray-300"}`}
+          className={`group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-700 hover:text-white ${
+            isActive ? "bg-gray-700 text-white" : "text-gray-300"
+          }`}
         >
-          {item.icon && <item.icon className="mr-3 h-5 w-5" />}
+          <item.icon className="mr-3 h-5 w-5" />
           <span>{item.title}</span>
         </Link>
       );
@@ -171,14 +199,21 @@ export function NewSidebar() {
   };
 
   return (
-    <aside className="w-64 shrink-0 bg-gray-900 text-white hidden md:block">
+    <aside className="hidden w-64 shrink-0 bg-gray-900 text-white md:block">
       <div className="p-5">
         <h2 className="text-2xl font-bold">DIBF Admin</h2>
       </div>
+
       <nav className="space-y-1 px-3">
         {renderNav(sidebarNavItems)}
+
         <hr className="my-3 border-gray-600" />
-        <Link href="/" target="_blank" className="group flex items-center rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
+
+        <Link
+          href="/"
+          target="_blank"
+          className="group flex items-center rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+        >
           <Globe className="mr-3 h-5 w-5" />
           View Website
         </Link>
