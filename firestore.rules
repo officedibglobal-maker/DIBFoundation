@@ -30,7 +30,11 @@ service cloud.firestore {
     match /contactMessages/{id} { allow create; allow read, update, delete: if isAdmin(); }
     match /volunteerRequests/{id} { allow create; allow read, update, delete: if isAdmin(); }
     match /partnershipRequests/{id} { allow create; allow read, update, delete: if isAdmin(); }
-    match /newsletterSubscriptions/{id} { allow create; allow read, update, delete: if isAdmin(); }
+    match /newsletterSubscriptions/{id} {
+      allow create;
+      allow read, delete: if isAdmin();
+      allow update: if request.resource.data.status == "unsubscribed";
+    }
 
     // Newsletter - Admin only
     match /newsletterCampaigns/{id} { allow read, write: if isAdmin(); }
