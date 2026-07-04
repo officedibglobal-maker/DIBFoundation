@@ -1,37 +1,47 @@
-export const COLLECTIONS = {
-  announcements: "announcements",
-  auditLogs: "auditLogs",
-  carts: "carts",
-  contactMessages: "contactMessages",
-  donationCampaigns: "donationCampaigns",
-  donations: "donations",
-  events: "events",
-  faqs: "faqs",
-  focusAreas: "focusAreas",
-  heroSlides: "heroSlides",
-  impactStats: "impactStats",
-  impactStories: "impactStories",
-  impactStore: "impactStore",
-  impactStoreCategories: "impactStoreCategories",
-  impactStoreOrders: "impactStoreOrders",
-  initiatives: "initiatives",
-  mediaLibrary: "mediaLibrary",
-  navigationItems: "navigationItems",
-  news: "news",
-  newsletterCampaigns: "newsletterCampaigns",
-  newsletterSettings: "newsletterSettings",
-  newsletterSubscribers: "newsletterSubscribers",
-  newsletterTemplates: "newsletterTemplates",
-  pages: "pages",
-  partners: "partners",
-  partnershipRequests: "partnershipRequests",
-  publications: "publications",
-  schemaRegistry: "schemaRegistry",
-  seedRuns: "seedRuns",
-  siteSettings: "siteSettings",
-  teamMembers: "teamMembers",
-  testimonials: "testimonials",
-  users: "users",
-  volunteerRequests: "volunteerRequests",
-  wishlists: "wishlists",
-} as const;
+import { collection } from "firebase/firestore";
+
+import { db } from "@/firebase/index";
+import {
+  newsletterCampaignConverter,
+  newsletterSettingsConverter,
+  newsletterSubscriberConverter,
+} from "@/lib/firestore/converters";
+import { COLLECTIONS } from "@/lib/firestore/collection-names";
+
+export { COLLECTIONS } from "@/lib/firestore/collection-names";
+
+export const newsletterSubscriptionsCollection =
+  collection(
+    db,
+    COLLECTIONS.newsletterSubscriptions,
+  ).withConverter(newsletterSubscriberConverter);
+
+/**
+ * Legacy subscriber collection.
+ *
+ * New subscription and subscriber-management code should use
+ * newsletterSubscriptionsCollection.
+ */
+export const newsletterSubscribersCollection =
+  collection(
+    db,
+    COLLECTIONS.newsletterSubscribers,
+  ).withConverter(newsletterSubscriberConverter);
+
+export const newsletterCampaignsCollection =
+  collection(
+    db,
+    COLLECTIONS.newsletterCampaigns,
+  ).withConverter(newsletterCampaignConverter);
+
+export const newsletterSettingsCollection =
+  collection(
+    db,
+    COLLECTIONS.newsletterSettings,
+  ).withConverter(newsletterSettingsConverter);
+
+export const newsletterTemplatesCollection =
+  collection(
+    db,
+    COLLECTIONS.newsletterTemplates,
+  );

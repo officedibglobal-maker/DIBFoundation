@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useFirestore } from '@/firebase/firestore/use-firestore';
-import { getDocuments } from '@/lib/firestore/crud';
+import { getCollectionDocuments } from '@/lib/firestore/crud';
 import { COLLECTIONS } from '@/lib/firestore/collections';
 import { ImpactStory } from '@/types/firestore';
 import { useEffect, useState } from 'react';
@@ -59,13 +59,11 @@ export function FeaturedStory() {
       return;
     }
 
-    const firestore = db;
     let active = true;
 
     async function loadFeaturedStory() {
       try {
-        const stories = await getDocuments<ImpactStory>(
-          firestore,
+        const stories = await getCollectionDocuments<ImpactStory>(
           COLLECTIONS.impactStories
         );
 
@@ -109,7 +107,7 @@ export function FeaturedStory() {
     };
   }, [db, status]);
 
-  if (status === "loading" || loading) {
+  if (loading) {
     return <FeaturedStorySkeleton />;
   }
 

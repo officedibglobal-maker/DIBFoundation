@@ -17,6 +17,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Heart, ShieldCheck, Globe, Zap } from 'lucide-react';
 import { ScrollReveal, RevealItem } from '@/components/shared/ScrollReveal';
+import { useEffect, useState } from 'react';
 
 const DonationSchema = z.object({
   fullName: z.string().min(2, "Full name is required"),
@@ -32,10 +33,19 @@ const DonationSchema = z.object({
 export default function GivePage() {
   const { db, status, error } = useFirestore();
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
   const form = useForm<z.infer<typeof DonationSchema>>({
     resolver: zodResolver(DonationSchema),
     defaultValues: { fullName: "", email: "", phone: "", amount: "", consent: false }
   });
+
+  useEffect(() => {
+    if (status !== 'ready') {
+        if(status === 'error') setIsLoading(false);
+        return;
+    }
+    setIsLoading(false);
+  }, [status]);
 
   async function onSubmit(values: z.infer<typeof DonationSchema>) {
     if (status !== 'ready' || !db) {
@@ -55,7 +65,7 @@ export default function GivePage() {
     }
   }
 
-  if (status === 'loading') {
+  if (isLoading) {
     return <p>Loading...</p>;
   }
 

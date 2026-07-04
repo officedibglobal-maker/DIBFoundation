@@ -138,7 +138,7 @@ function ContactForm() {
       organization: "",
       inquiryType: isStoreInquiry ? "store-inquiry" : "",
       message: isStoreInquiry 
-        ? `I am interested in inquiring about the following items from the DIBF Impact Store: \n${items.map(i => `- ${i.title} (x${i.quantity})`).join('\n')}\n\nTotal Estimated Contribution: $${totalPrice().toFixed(2)}`
+        ? `I am interested in inquiring about the following items from the DIBF Impact Store: \n${items.map(i => `- ${i.name} (x${i.quantity})`).join('\n')}\n\nTotal Estimated Contribution: $${totalPrice().toFixed(2)}`
         : "",
     },
   });
@@ -201,10 +201,10 @@ function ContactForm() {
                   {items.map(item => (
                     <div key={item.id} className="flex gap-3 text-sm">
                       <div className="w-12 h-12 relative rounded border shrink-0">
-                        <Image src={item.imageUrl} alt={item.title} fill className="object-cover rounded" />
+                        <Image src={item.imageUrl} alt={item.name} fill className="object-cover rounded" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-bold line-clamp-1">{item.title}</p>
+                        <p className="font-bold line-clamp-1">{item.name}</p>
                         <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
                       </div>
                     </div>

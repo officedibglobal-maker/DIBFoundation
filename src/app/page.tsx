@@ -1,4 +1,3 @@
-
 import { Hero } from '@/components/home/Hero';
 import { FeaturedStory } from '@/components/home/FeaturedStory';
 import { WhatWeDoGrid } from '@/components/home/WhatWeDoGrid';
@@ -7,131 +6,201 @@ import { SectionHeader } from '@/components/shared/SectionHeader';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, ShoppingBag, Handshake, Heart, ShieldCheck } from 'lucide-react';
+import {
+  ArrowRight,
+  ShoppingBag,
+  Handshake,
+  Heart,
+  ShieldCheck,
+} from 'lucide-react';
 import { getDocuments } from '@/lib/firestore/server';
 import { COLLECTIONS } from '@/lib/firestore/collections';
 import { Initiative, Stat, ImpactStatViewModel } from '@/types/firestore';
 import { orderBy } from 'firebase/firestore';
 
 export default async function HomePage() {
-  const initiatives = await getDocuments<Initiative>(COLLECTIONS.initiatives, [orderBy("order", "asc")]);
-  const stats = await getDocuments<Stat>(COLLECTIONS.impactStats, [orderBy("order", "asc")]);
+  const initiatives = await getDocuments<Initiative>(
+    COLLECTIONS.initiatives,
+    [orderBy('order', 'asc')],
+  );
+
+  const stats = await getDocuments<Stat>(
+    COLLECTIONS.impactStats,
+    [orderBy('order', 'asc')],
+  );
 
   const serializedStats: ImpactStatViewModel[] = stats.map((stat) => ({
-    id: stat.id ?? "",
-    label: stat.label ?? "",
-    value: typeof stat.value === "number" ? stat.value : Number(stat.value ?? 0),
-    prefix: typeof stat.prefix === "string" ? stat.prefix : undefined,
-    suffix: typeof stat.suffix === "string" ? stat.suffix : undefined,
-    description: typeof stat.description === "string" ? stat.description : undefined,
-    iconName: typeof stat.iconName === "string" ? stat.iconName : undefined,
-    order: typeof stat.order === "number" ? stat.order : 0,
+    id: stat.id ?? '',
+    label: stat.label ?? '',
+    value: typeof stat.value === 'number' ? stat.value : Number(stat.value ?? 0),
+    prefix: typeof stat.prefix === 'string' ? stat.prefix : undefined,
+    suffix: typeof stat.suffix === 'string' ? stat.suffix : undefined,
+    description:
+      typeof stat.description === 'string' ? stat.description : undefined,
+    iconName: typeof stat.iconName === 'string' ? stat.iconName : undefined,
+    order: typeof stat.order === 'number' ? stat.order : 0,
   }));
 
   return (
-    <div className="space-y-0">
+    <main className="min-h-screen overflow-x-hidden bg-white">
       <Hero />
+
+      <section className="relative bg-white">
+        <ImpactStats stats={serializedStats} />
+      </section>
+
       <FeaturedStory />
+
       <WhatWeDoGrid />
 
-      <section className="py-24 bg-muted/30">
+      <section className="bg-muted/30 py-20 md:py-24">
         <div className="container mx-auto px-4">
-          <SectionHeader 
-            title="Our Initiatives" 
+          <SectionHeader
+            title="Our Initiatives"
             subtitle="Strategic programs designed to create lasting transformation in healthcare and community development."
           />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {initiatives.map((item, idx) => (
-              <Link href="/initiatives" key={item.id || idx} className="group h-full">
-                <div className="h-full border-none shadow-lg group-hover:shadow-2xl transition-all duration-500 overflow-hidden flex flex-col relative min-h-[400px] rounded-lg">
-                  <Image 
-                    src={item.imageUrl || `https://picsum.photos/seed/init-${idx}/600/800`} 
-                    alt={item.title} 
-                    fill 
-                    className="object-cover group-hover:scale-110 transition-transform duration-700"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-secondary via-secondary/20 to-transparent" />
-                  <div className="absolute bottom-0 left-0 p-6 space-y-2 text-white w-full">
-                    <h3 className="text-xl font-bold">{item.title}</h3>
-                    <p className="text-sm text-white/70 line-clamp-2 leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                      {item.summary}
-                    </p>
-                    <div className="pt-2">
-                      <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:bg-accent transition-colors">
-                        <ArrowRight className="w-5 h-5" />
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {initiatives.map((item, idx) => {
+              const title = item.title || 'DIBF Initiative';
+              const summary =
+                item.summary ||
+                'Supporting communities through healthcare, empowerment, and sustainable community transformation.';
+
+              return (
+                <Link
+                  href="/initiatives"
+                  key={item.id || `${title}-${idx}`}
+                  className="group block h-full"
+                >
+                  <article className="relative flex h-full min-h-[400px] overflow-hidden rounded-2xl bg-secondary shadow-lg transition-all duration-500 group-hover:-translate-y-1 group-hover:shadow-2xl">
+                    <Image
+                      src={
+                        item.imageUrl ||
+                        `https://picsum.photos/seed/init-${idx}/700/900`
+                      }
+                      alt={title}
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                      className="object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
+
+                    <div className="absolute inset-0 bg-gradient-to-t from-secondary via-secondary/45 to-transparent" />
+
+                    <div className="absolute inset-x-0 bottom-0 p-6 text-white">
+                      <h3 className="text-xl font-bold leading-tight">
+                        {title}
+                      </h3>
+
+                      <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-white/75">
+                        {summary}
+                      </p>
+
+                      <div className="mt-5 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm transition-colors group-hover:bg-accent">
+                        <ArrowRight className="h-5 w-5" />
                       </div>
                     </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
+                  </article>
+                </Link>
+              );
+            })}
           </div>
-          
+
           <div className="mt-12 text-center">
-            <Button asChild variant="outline" className="rounded-full px-10 h-12 border-primary text-primary font-bold hover:bg-primary hover:text-white transition-all">
+            <Button
+              asChild
+              variant="outline"
+              className="h-12 rounded-full border-primary px-10 font-bold text-primary transition-all hover:bg-primary hover:text-white"
+            >
               <Link href="/initiatives">View All Initiatives</Link>
             </Button>
           </div>
         </div>
       </section>
 
-      <ImpactStats stats={serializedStats} />
-
-      <section className="py-24 bg-white">
+      <section className="bg-white py-20 md:py-24">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div className="space-y-8 order-2 lg:order-1">
-              <div className="space-y-4">
-                <h2 className="text-3xl md:text-5xl font-bold text-secondary font-headline leading-tight">
+          <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-16">
+            <div className="order-2 space-y-8 lg:order-1">
+              <div className="space-y-5">
+                <span className="text-xs font-bold uppercase tracking-[0.22em] text-accent">
+                  Partnerships
+                </span>
+
+                <h2 className="font-headline text-3xl font-bold leading-tight text-secondary md:text-5xl">
                   Stronger Together. Greater Impact.
                 </h2>
-                <p className="text-lg text-muted-foreground leading-relaxed max-w-xl">
-                  We believe meaningful change happens through collaboration. Partner with us to build healthier, more resilient communities across the globe.
+
+                <p className="max-w-xl text-lg leading-relaxed text-muted-foreground">
+                  We believe meaningful change happens through collaboration.
+                  Partner with us to build healthier, more resilient communities
+                  across the globe.
                 </p>
               </div>
-              <Button asChild size="lg" className="h-14 px-10 font-bold bg-primary rounded-full gap-2">
-                <Link href="/partnerships">
-                  Partner With Us <Handshake className="w-5 h-5" />
+
+              <Button
+                asChild
+                size="lg"
+                className="h-14 rounded-full bg-primary px-10 font-bold"
+              >
+                <Link href="/partnerships" className="inline-flex items-center gap-2">
+                  Partner With Us <Handshake className="h-5 w-5" />
                 </Link>
               </Button>
             </div>
-            <div className="relative h-[400px] lg:h-[500px] rounded-3xl overflow-hidden shadow-2xl order-1 lg:order-2">
-              <Image 
-                src="https://picsum.photos/seed/partnership-home/800/600" 
-                alt="Partnership" 
-                fill 
+
+            <div className="relative order-1 h-[360px] overflow-hidden rounded-[2rem] shadow-2xl lg:order-2 lg:h-[500px]">
+              <Image
+                src="https://picsum.photos/seed/partnership-home/900/650"
+                alt="DIBF partnership"
+                fill
+                sizes="(max-width: 1024px) 100vw, 50vw"
                 className="object-cover"
               />
+              <div className="absolute inset-0 bg-gradient-to-t from-secondary/25 to-transparent" />
             </div>
           </div>
         </div>
       </section>
 
-      <section className="py-24 bg-muted/50">
+      <section className="bg-muted/50 py-20 md:py-24">
         <div className="container mx-auto px-4">
-          <div className="bg-white rounded-[2.5rem] shadow-xl overflow-hidden grid grid-cols-1 lg:grid-cols-2 items-center">
-            <div className="relative h-[400px] lg:h-full">
-              <Image 
-                src="https://picsum.photos/seed/store-teaser/800/800" 
-                alt="Impact Store" 
-                fill 
+          <div className="grid grid-cols-1 items-center overflow-hidden rounded-[2rem] bg-white shadow-xl lg:grid-cols-2 lg:rounded-[2.5rem]">
+            <div className="relative h-[340px] lg:h-full lg:min-h-[540px]">
+              <Image
+                src="https://picsum.photos/seed/store-teaser/900/900"
+                alt="DIBF Impact Store"
+                fill
+                sizes="(max-width: 1024px) 100vw, 50vw"
                 className="object-cover"
               />
+              <div className="absolute inset-0 bg-gradient-to-t from-secondary/20 to-transparent" />
             </div>
-            <div className="p-12 lg:p-20 space-y-8">
-              <div className="space-y-4">
-                <span className="text-accent font-bold uppercase tracking-widest text-xs">DIBF Impact Store</span>
-                <h2 className="text-3xl md:text-5xl font-bold text-secondary font-headline">
+
+            <div className="space-y-8 p-8 sm:p-12 lg:p-20">
+              <div className="space-y-5">
+                <span className="text-xs font-bold uppercase tracking-[0.22em] text-accent">
+                  DIBF Impact Store
+                </span>
+
+                <h2 className="font-headline text-3xl font-bold leading-tight text-secondary md:text-5xl">
                   Shop With Purpose.
                 </h2>
-                <p className="text-lg text-muted-foreground leading-relaxed">
-                  Every purchase supports initiatives that advance health, promote wellbeing, and create opportunities for lasting impact.
+
+                <p className="text-lg leading-relaxed text-muted-foreground">
+                  Every purchase supports initiatives that advance health,
+                  promote wellbeing, and create opportunities for lasting
+                  impact.
                 </p>
               </div>
-              <Button asChild size="lg" className="h-14 px-10 font-bold bg-secondary rounded-full gap-2">
-                <Link href="/impact-store">
-                  Shop the Collection <ShoppingBag className="w-5 h-5" />
+
+              <Button
+                asChild
+                size="lg"
+                className="h-14 rounded-full bg-secondary px-10 font-bold"
+              >
+                <Link href="/impact-store" className="inline-flex items-center gap-2">
+                  Shop the Collection <ShoppingBag className="h-5 w-5" />
                 </Link>
               </Button>
             </div>
@@ -139,51 +208,67 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="py-24 bg-secondary text-white">
-        <div className="container mx-auto px-4 text-center space-y-16">
-          <div className="space-y-4 max-w-3xl mx-auto">
-            <span className="text-accent font-bold uppercase tracking-widest text-sm">Make An Impact Today</span>
-            <h2 className="text-3xl md:text-5xl font-bold font-headline">Join Us in Building a Better World</h2>
+      <section className="bg-secondary py-20 text-white md:py-24">
+        <div className="container mx-auto space-y-14 px-4 text-center md:space-y-16">
+          <div className="mx-auto max-w-3xl space-y-5">
+            <span className="text-sm font-bold uppercase tracking-[0.22em] text-accent">
+              Make An Impact Today
+            </span>
+
+            <h2 className="font-headline text-3xl font-bold leading-tight md:text-5xl">
+              Join Us in Building a Better World
+            </h2>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+
+          <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 md:grid-cols-3 lg:gap-8">
             {[
-              { 
-                icon: Heart, 
-                title: "Donate", 
-                text: "Your support helps us continue life-changing work.", 
-                link: "/give", 
-                cta: "Donate Now" 
+              {
+                icon: Heart,
+                title: 'Donate',
+                text: 'Your support helps us continue life-changing work.',
+                link: '/give',
+                cta: 'Donate Now',
               },
-              { 
-                icon: ShieldCheck, 
-                title: "Volunteer", 
-                text: "Give your time and skills to uplift communities.", 
-                link: "/get-involved", 
-                cta: "Get Involved" 
+              {
+                icon: ShieldCheck,
+                title: 'Volunteer',
+                text: 'Give your time and skills to uplift communities.',
+                link: '/get-involved',
+                cta: 'Get Involved',
               },
-              { 
-                icon: Handshake, 
-                title: "Partner", 
-                text: "Collaborate with us to drive sustainable change.", 
-                link: "/partnerships", 
-                cta: "Partner With Us" 
-              }
-            ].map((item, i) => (
-              <div key={i} className="bg-white/5 border border-white/10 p-10 rounded-3xl hover:bg-white/10 transition-all group">
-                <div className="w-16 h-16 bg-accent/20 text-accent rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                  <item.icon className="w-8 h-8" />
+              {
+                icon: Handshake,
+                title: 'Partner',
+                text: 'Collaborate with us to drive sustainable change.',
+                link: '/partnerships',
+                cta: 'Partner With Us',
+              },
+            ].map((item) => (
+              <article
+                key={item.title}
+                className="group rounded-3xl border border-white/10 bg-white/[0.04] p-8 transition-all hover:-translate-y-1 hover:bg-white/[0.08] sm:p-10"
+              >
+                <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-accent/20 text-accent transition-transform group-hover:scale-110">
+                  <item.icon className="h-8 w-8" />
                 </div>
-                <h3 className="text-2xl font-bold mb-3">{item.title}</h3>
-                <p className="text-white/60 mb-8 leading-relaxed">{item.text}</p>
-                <Link href={item.link} className="inline-flex items-center gap-2 text-accent font-bold hover:gap-3 transition-all">
-                  {item.cta} <ArrowRight className="w-5 h-5" />
+
+                <h3 className="mb-3 text-2xl font-bold">{item.title}</h3>
+
+                <p className="mb-8 leading-relaxed text-white/65">
+                  {item.text}
+                </p>
+
+                <Link
+                  href={item.link}
+                  className="inline-flex items-center gap-2 font-bold text-accent transition-all hover:gap-3"
+                >
+                  {item.cta} <ArrowRight className="h-5 w-5" />
                 </Link>
-              </div>
+              </article>
             ))}
           </div>
         </div>
       </section>
-    </div>
+    </main>
   );
 }

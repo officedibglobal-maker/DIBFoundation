@@ -6,8 +6,8 @@ import { persist } from 'zustand/middleware';
 
 export interface CartItem {
   id: string;
-  title: string;
-  price: string;
+  name: string;
+  price: number;
   imageUrl: string;
   quantity: number;
 }
@@ -56,10 +56,7 @@ export const useCart = create<CartStore>()(
       clearCart: () => set({ items: [] }),
       totalItems: () => get().items.reduce((acc, item) => acc + item.quantity, 0),
       totalPrice: () => {
-        return get().items.reduce((acc, item) => {
-          const price = parseFloat(item.price.replace(/[^0-9.-]+/g, ""));
-          return acc + price * item.quantity;
-        }, 0);
+        return get().items.reduce((acc, item) => acc + item.price * item.quantity, 0);
       },
     }),
     {

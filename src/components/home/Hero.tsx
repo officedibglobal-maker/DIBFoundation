@@ -1,209 +1,522 @@
-
-"use client";
+'use client';
 
 import * as React from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, ChevronLeft } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useFirestore } from '@/firebase/firestore/use-firestore';
-import { getDocuments } from '@/lib/firestore/crud';
-import { COLLECTIONS } from '@/lib/firestore/collections';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { collection, onSnapshot, type DocumentData } from 'firebase/firestore';
+
 import { Skeleton } from '@/components/ui/skeleton';
-import { HeroSlide } from '@/types/firestore';
+import { useFirebase } from '@/firebase/client-provider';
+import { COLLECTIONS } from '@/lib/firestore/collections';
+import { cn } from '@/lib/utils';
+
+type DisplayHeroSlide = {
+  id: string;
+  title: string;
+  eyebrow: string;
+  subtitle: string;
+  description: string;
+  imageUrl: string;
+  mobileImageUrl: string;
+  imageAlt: string;
+  primaryCtaLabel: string;
+  primaryCtaUrl: string;
+  secondaryCtaLabel: string;
+  secondaryCtaUrl: string;
+  isActive: boolean;
+  order: number;
+  publishStartAt: unknown;
+  publishEndAt: unknown;
+};
+
+function getString(data: DocumentData, fieldNames: string[], fallback = ''): string {
+  for (const fieldName of fieldNames) {
+    const value = data[fieldName];
+
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return fallback;
+}
+
+function getNumber(data: DocumentData, fieldNames: string[], fallback = 0): number {
+  for (const fieldName of fieldNames) {
+    const value = data[fieldName];
+
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (typeof value === 'string' && value.trim() && Number.isFinite(Number(value))) {
+      return Number(value);
+    }
+  }
+
+  return fallback;
+}
+
+function getActiveStatus(data: DocumentData): boolean {
+  if (typeof data.isActive === 'boolean') return data.isActive;
+  if (typeof data.active === 'boolean') return data.active;
+
+  return true;
+}
+
+function toDate(value: unknown): Date | null {
+  if (!value) return null;
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'toDate' in value &&
+    typeof (value as { toDate?: unknown }).toDate === 'function'
+  ) {
+    try {
+      const convertedDate = (value as { toDate: () => Date }).toDate();
+      return Number.isNaN(convertedDate.getTime()) ? null : convertedDate;
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof value === 'object' && value !== null && 'seconds' in value) {
+    const seconds = Number((value as { seconds?: unknown }).seconds);
+
+    if (Number.isFinite(seconds)) {
+      return new Date(seconds * 1000);
+    }
+  }
+
+  if (typeof value === 'string' || typeof value === 'number') {
+    const convertedDate = new Date(value);
+
+    return Number.isNaN(convertedDate.getTime()) ? null : convertedDate;
+  }
+
+  return null;
+}
+
+function normalizeHeroSlide(id: string, data: DocumentData): DisplayHeroSlide {
+  const desktopImageUrl = getString(data, [
+    'imageUrl',
+    'desktopImageUrl',
+    'backgroundImageUrl',
+    'backgroundImage',
+    'image',
+  ]);
+
+  return {
+    id,
+
+    title: getString(
+      data,
+      ['title', 'heading'],
+      'Advancing Health, Human Dignity, and Sustainable Development'
+    ),
+
+    eyebrow: getString(data, ['eyebrow', 'kicker', 'label']),
+
+    subtitle: getString(data, ['subtitle', 'subheading']),
+
+    description: getString(data, ['description', 'body', 'content']),
+
+    imageUrl: desktopImageUrl,
+
+    mobileImageUrl: getString(data, ['mobileImageUrl', 'mobileImage'], desktopImageUrl),
+
+    imageAlt: getString(
+      data,
+      ['imageAlt', 'altText'],
+      getString(data, ['title', 'heading'], 'DIBF hero image')
+    ),
+
+    primaryCtaLabel: getString(data, [
+      'primaryCtaLabel',
+      'primaryButtonText',
+      'buttonText',
+      'ctaLabel',
+    ]),
+
+    primaryCtaUrl: getString(data, [
+      'primaryCtaUrl',
+      'primaryButtonUrl',
+      'buttonLink',
+      'ctaUrl',
+    ]),
+
+    secondaryCtaLabel: getString(data, ['secondaryCtaLabel', 'secondaryButtonText']),
+
+    secondaryCtaUrl: getString(data, ['secondaryCtaUrl', 'secondaryButtonUrl']),
+
+    isActive: getActiveStatus(data),
+
+    order: getNumber(data, ['order', 'sortOrder'], 999),
+
+    publishStartAt: data.publishStartAt ?? data.publishStartDate ?? data.startAt ?? null,
+
+    publishEndAt: data.publishEndAt ?? data.publishEndDate ?? data.endAt ?? null,
+  };
+}
+
+function isPublishable(slide: DisplayHeroSlide, currentDate: Date): boolean {
+  if (!slide.isActive) return false;
+
+  const startDate = toDate(slide.publishStartAt);
+  const endDate = toDate(slide.publishEndAt);
+
+  const hasStarted = !startDate || startDate <= currentDate;
+  const hasNotEnded = !endDate || endDate >= currentDate;
+
+  return hasStarted && hasNotEnded;
+}
+
+function HeroCtaLink({
+  href,
+  className,
+  children,
+}: {
+  href: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const isExternal =
+    /^https?:\/\//i.test(href) ||
+    /^mailto:/i.test(href) ||
+    /^tel:/i.test(href);
+
+  if (isExternal) {
+    return (
+      <a
+        href={href}
+        target={/^https?:\/\//i.test(href) ? '_blank' : undefined}
+        rel={/^https?:\/\//i.test(href) ? 'noopener noreferrer' : undefined}
+        className={className}
+      >
+        {children}
+      </a>
+    );
+  }
+
+  return (
+    <Link href={href} className={className}>
+      {children}
+    </Link>
+  );
+}
 
 export function Hero() {
-  const { db, status } = useFirestore();
-  const [slides, setSlides] = React.useState<HeroSlide[]>([]);
+  const { db } = useFirebase();
+
+  const [slides, setSlides] = React.useState<DisplayHeroSlide[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [currentIndex, setCurrentIndex] = React.useState(0);
   const [isPaused, setIsPaused] = React.useState(false);
 
-  const defaultSlides: HeroSlide[] = [
-    {
-      title: "Creating Pathways. Transforming Lives. Building Stronger Communities.",
-      subtitle: "Advancing Health. Human Dignity. Sustainable Development.",
-      body: "DIBF advances health equity, community wellbeing, youth empowerment, and sustainable development across Africa and underserved communities worldwide.",
-      imageUrl: "https://picsum.photos/seed/dibf-hero-default/1920/1080",
-      primaryCtaLabel: "Support Our Work",
-      primaryCtaHref: "/get-involved",
-      secondaryCtaLabel: "Explore Initiatives",
-      secondaryCtaHref: "/initiatives",
-      order: 1,
-      status: "published",
-    }
-  ];
-
   React.useEffect(() => {
-    async function fetchSlides() {
-      if (status === 'ready' && db) {
-        try {
-          const fetchedSlides = await getDocuments<HeroSlide>(db, COLLECTIONS.heroSlides);
-          setSlides(fetchedSlides.length > 0 ? fetchedSlides : defaultSlides);
-        } catch (error) { 
-          console.error("Error fetching hero slides:", error);
-          setSlides(defaultSlides);
-        } finally {
+    if (!db) return;
+
+    const slidesCollection = collection(db, COLLECTIONS.heroSlides);
+
+    let initialResponseReceived = false;
+
+    const unsubscribe = onSnapshot(
+      slidesCollection,
+      (snapshot) => {
+        const currentDate = new Date();
+
+        const nextSlides = snapshot.docs
+          .map((documentSnapshot) =>
+            normalizeHeroSlide(documentSnapshot.id, documentSnapshot.data())
+          )
+          .filter((slide) => isPublishable(slide, currentDate))
+          .sort((firstSlide, secondSlide) => firstSlide.order - secondSlide.order);
+
+        setSlides(nextSlides);
+
+        if (!initialResponseReceived) {
+          initialResponseReceived = true;
           setLoading(false);
         }
+      },
+      (error) => {
+        console.error('Error fetching hero slides:', error);
+        setLoading(false);
       }
-    }
-    fetchSlides();
-  }, [db, status, defaultSlides]);
+    );
 
-  const data = slides;
+    return unsubscribe;
+  }, [db]);
 
   React.useEffect(() => {
-    if (data.length <= 1 || isPaused) return;
+    slides.forEach((slide) => {
+      if (slide.imageUrl) {
+        const desktopImage = new window.Image();
+        desktopImage.src = slide.imageUrl;
+      }
 
-    const timer = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % data.length);
-    }, 6000);
+      if (slide.mobileImageUrl && slide.mobileImageUrl !== slide.imageUrl) {
+        const mobileImage = new window.Image();
+        mobileImage.src = slide.mobileImageUrl;
+      }
+    });
+  }, [slides]);
 
-    return () => clearInterval(timer);
-  }, [data.length, isPaused]);
+  React.useEffect(() => {
+    setCurrentIndex((previousIndex) => {
+      if (slides.length === 0) return 0;
+      return Math.min(previousIndex, slides.length - 1);
+    });
+  }, [slides.length]);
 
-  if (loading || status !== 'ready') {
-    return (
-      <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-secondary">
-          <Skeleton className="absolute inset-0 z-0 w-full h-full" />
-        <div className="container mx-auto px-4 relative z-10 pt-20">
-          <div className="max-w-4xl space-y-8">
-                <div className="space-y-6">
-                  <div className="space-y-4">
-                    <Skeleton className="h-4 w-[250px]" />
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-3/4" />
-                  </div>
-                  <Skeleton className="h-8 w-1/2" />
-                  <div className="flex flex-wrap gap-4 pt-4">
-                    <Skeleton className="h-14 w-40" />
-                    <Skeleton className="h-14 w-40" />
-                  </div>
-                </div>
-          </div>
-        </div>
-      </section>
-    );
+  React.useEffect(() => {
+    if (slides.length <= 1 || isPaused) return;
+
+    const timerId = window.setInterval(() => {
+      setCurrentIndex((previousIndex) => (previousIndex + 1) % slides.length);
+    }, 6500);
+
+    return () => {
+      window.clearInterval(timerId);
+    };
+  }, [slides.length, isPaused]);
+
+  const handleNext = () => {
+    setCurrentIndex((previousIndex) => (previousIndex + 1) % slides.length);
+  };
+
+  const handlePrevious = () => {
+    setCurrentIndex((previousIndex) => (previousIndex - 1 + slides.length) % slides.length);
+  };
+
+  if (loading && slides.length === 0) {
+    return <HeroSkeleton />;
   }
 
-  const handleNext = () => setCurrentIndex((prev) => (prev + 1) % data.length);
-  const handlePrev = () => setCurrentIndex((prev) => (prev - 1 + data.length) % data.length);
+  if (!loading && slides.length === 0) {
+    return <DefaultHeroSection />;
+  }
 
-  const currentSlide = data[currentIndex];
-  const primaryCtaLabel = currentSlide.primaryCtaLabel || currentSlide.ctaText || "Learn More";
-  const primaryCtaHref = currentSlide.primaryCtaHref || currentSlide.ctaUrl || "/get-involved";
-  const secondaryCtaLabel = currentSlide.secondaryCtaLabel || "Explore Initiatives";
-  const secondaryCtaHref = currentSlide.secondaryCtaHref || "/initiatives";
+  const currentSlide = slides[currentIndex];
+
+  if (!currentSlide) {
+    return <DefaultHeroSection />;
+  }
+
+  const eyebrowText = currentSlide.eyebrow || 'Healing Communities. Empowering Futures.';
+
+  const bodyText =
+    currentSlide.description ||
+    currentSlide.subtitle ||
+    'DIBF advances health equity, human dignity, youth empowerment, community wellbeing, and sustainable humanitarian action across Africa and underserved communities.';
+
+  const primaryCtaLabel = currentSlide.primaryCtaLabel || 'Get Involved';
+  const primaryCtaUrl = currentSlide.primaryCtaUrl || '/get-involved';
+
+  const secondaryCtaLabel = currentSlide.secondaryCtaLabel || 'Learn More';
+  const secondaryCtaUrl = currentSlide.secondaryCtaUrl || '/about';
 
   return (
-    <section 
-      className="relative min-h-[90vh] flex items-center overflow-hidden bg-secondary"
+    <section
+      className="relative flex min-h-[620px] items-center overflow-hidden bg-secondary md:min-h-[650px] lg:min-h-[670px] xl:min-h-[690px]"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
+      aria-roledescription="carousel"
+      aria-label="Homepage featured content"
     >
-      <AnimatePresence mode="wait">
-        <motion.div 
-          key={currentIndex}
-          className="absolute inset-0 z-0"
-          initial={{ opacity: 0, scale: 1.05 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 1.5, ease: "easeOut" }}
-        >
-          <Image
-            src={currentSlide.imageUrl || "https://picsum.photos/seed/dibf-placeholder/1920/1080"}
-            alt={currentSlide.imageAlt || currentSlide.title || "DIBF"}
-            fill
-            className="object-cover opacity-60"
-            priority
-            data-ai-hint="medical doctor healthcare"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-secondary via-secondary/40 to-transparent" />
-        </motion.div>
-      </AnimatePresence>
+      <div className="absolute inset-0 z-0">
+        {slides.map((slide, index) => {
+          const isCurrent = index === currentIndex;
 
-      <div className="container mx-auto px-4 relative z-10 pt-20">
-        <div className="max-w-4xl space-y-8">
-          <AnimatePresence mode="wait">
+          return (
             <motion.div
-              key={`content-${currentIndex}`}
-              initial={{ opacity: 0, y: 20 }}
+              key={slide.id}
+              className="absolute inset-0"
+              initial={false}
+              animate={{ opacity: isCurrent ? 1 : 0 }}
+              transition={{ duration: 1, ease: 'easeOut' }}
+              aria-hidden={!isCurrent}
+              style={{ pointerEvents: isCurrent ? 'auto' : 'none' }}
+            >
+              {slide.imageUrl ? (
+                <picture className="absolute inset-0 block">
+                  {slide.mobileImageUrl ? (
+                    <source media="(max-width: 767px)" srcSet={slide.mobileImageUrl} />
+                  ) : null}
+
+                  <img
+                    src={slide.imageUrl}
+                    alt={slide.imageAlt}
+                    className="h-full w-full object-cover"
+                    loading={index === 0 ? 'eager' : 'lazy'}
+                  />
+                </picture>
+              ) : (
+                <div className="absolute inset-0 bg-secondary" />
+              )}
+
+              <div className="absolute inset-0 bg-gradient-to-r from-secondary/95 via-secondary/78 to-secondary/25" />
+              <div className="absolute inset-0 bg-gradient-to-t from-secondary/75 via-secondary/10 to-transparent" />
+            </motion.div>
+          );
+        })}
+      </div>
+
+      <div className="container relative z-10 mx-auto px-4 pb-32 pt-24 md:pb-36 md:pt-24">
+        <div className="max-w-3xl">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={currentSlide.id}
+              initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
+              exit={{ opacity: 0, y: -18 }}
+              transition={{ duration: 0.55, ease: 'easeOut' }}
               className="space-y-6"
             >
               <div className="space-y-4">
-                <span className="text-accent font-bold uppercase tracking-[0.2em] text-sm block">
-                  {currentSlide.subtitle}
+                <span className="block text-xs font-bold uppercase tracking-[0.28em] text-accent drop-shadow md:text-sm">
+                  {eyebrowText}
                 </span>
-                
-                <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-[1.05] font-headline">
+
+                <h1 className="max-w-4xl font-headline text-4xl font-extrabold leading-[1.05] tracking-tight text-white drop-shadow-[0_3px_14px_rgba(0,0,0,0.35)] md:text-5xl lg:text-6xl xl:text-[4rem]">
                   {currentSlide.title}
                 </h1>
               </div>
-              
-              <p className="text-lg md:text-xl text-white/80 leading-relaxed max-w-2xl font-body">
-                {currentSlide.body}
-              </p>
 
-              <div className="flex flex-wrap gap-4 pt-4">
-                {primaryCtaLabel && (
-                  <Button asChild size="lg" className="h-14 px-10 text-lg font-bold shadow-2xl bg-accent hover:bg-accent/90 rounded-full transition-all">
-                    <Link href={primaryCtaHref}>
-                      {primaryCtaLabel}
-                    </Link>
-                  </Button>
-                )}
-                {secondaryCtaLabel && (
-                  <Button asChild variant="outline" size="lg" className="h-14 px-10 text-lg font-bold border-white/30 text-white hover:bg-white/10 rounded-full transition-all gap-2">
-                    <Link href={secondaryCtaHref}>
-                      {secondaryCtaLabel} <ChevronRight className="w-5 h-5" />
-                    </Link>
-                  </Button>
-                )}
+              {bodyText ? (
+                <p className="max-w-2xl rounded-xl bg-secondary/25 p-0 font-body text-base font-medium leading-relaxed text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)] md:text-lg lg:text-xl">
+                  {bodyText}
+                </p>
+              ) : null}
+
+              <div className="flex flex-wrap gap-4 pt-2">
+                <HeroCtaLink
+                  href={primaryCtaUrl}
+                  className="inline-flex h-12 items-center justify-center rounded-md bg-primary px-8 text-sm font-bold text-white shadow-xl shadow-primary/25 transition-all hover:-translate-y-0.5 hover:bg-primary/90 md:h-14 md:px-10"
+                >
+                  {primaryCtaLabel}
+                </HeroCtaLink>
+
+                <HeroCtaLink
+                  href={secondaryCtaUrl}
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-md border border-white/70 bg-white/10 px-8 text-sm font-bold text-white shadow-lg backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/20 md:h-14 md:px-10"
+                >
+                  {secondaryCtaLabel}
+                  <ChevronRight className="h-5 w-5" />
+                </HeroCtaLink>
               </div>
             </motion.div>
           </AnimatePresence>
         </div>
       </div>
 
-      {data.length > 1 && (
-        <>
-          <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-4 z-20">
-            <button 
-              onClick={handlePrev}
-              className="p-2 text-white/40 hover:text-white transition-colors"
-              aria-label="Previous slide"
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </button>
-            <div className="flex gap-2">
-              {data.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentIndex(i)}
-                  className={cn(
-                    "h-1.5 transition-all duration-500 rounded-full",
-                    i === currentIndex ? "w-8 bg-accent" : "w-2 bg-white/20 hover:bg-white/40"
-                  )}
-                  aria-label={`Go to slide ${i + 1}`}
-                />
-              ))}
-            </div>
-            <button 
-              onClick={handleNext}
-              className="p-2 text-white/40 hover:text-white transition-colors"
-              aria-label="Next slide"
-            >
-              <ChevronRight className="w-6 h-6" />
-            </button>
+      {slides.length > 1 ? (
+        <div className="absolute bottom-16 left-1/2 z-20 flex -translate-x-1/2 items-center gap-4 md:bottom-18">
+          <button
+            type="button"
+            onClick={handlePrevious}
+            className="rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            aria-label="Previous slide"
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+
+          <div className="flex gap-2">
+            {slides.map((slide, index) => (
+              <button
+                key={slide.id}
+                type="button"
+                onClick={() => setCurrentIndex(index)}
+                className={cn(
+                  'h-2 rounded-full transition-all duration-500',
+                  index === currentIndex ? 'w-9 bg-accent' : 'w-2 bg-white/40 hover:bg-white/70'
+                )}
+                aria-label={`Go to slide ${index + 1}`}
+                aria-current={index === currentIndex ? 'true' : undefined}
+              />
+            ))}
           </div>
-        </>
-      )}
+
+          <button
+            type="button"
+            onClick={handleNext}
+            className="rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            aria-label="Next slide"
+          >
+            <ChevronRight className="h-6 w-6" />
+          </button>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function HeroSkeleton() {
+  return (
+    <section className="relative flex min-h-[620px] items-center overflow-hidden bg-secondary md:min-h-[650px] lg:min-h-[670px] xl:min-h-[690px]">
+      <Skeleton className="absolute inset-0 h-full w-full" />
+
+      <div className="container relative z-10 mx-auto px-4 pb-32 pt-24 md:pb-36 md:pt-24">
+        <div className="max-w-3xl space-y-7">
+          <Skeleton className="h-4 w-[250px]" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-3/4" />
+          <Skeleton className="h-7 w-1/2" />
+
+          <div className="flex gap-4 pt-4">
+            <Skeleton className="h-12 w-36" />
+            <Skeleton className="h-12 w-36" />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function DefaultHeroSection() {
+  return (
+    <section className="relative flex min-h-[620px] items-center overflow-hidden bg-secondary md:min-h-[650px] lg:min-h-[670px] xl:min-h-[690px]">
+      <div className="absolute inset-0 bg-gradient-to-r from-secondary via-secondary/90 to-secondary/70" />
+
+      <div className="container relative z-10 mx-auto px-4 pb-32 pt-24 md:pb-36 md:pt-24">
+        <div className="max-w-3xl space-y-6 text-white">
+          <span className="block text-xs font-bold uppercase tracking-[0.28em] text-accent md:text-sm">
+            Healing Communities. Empowering Futures.
+          </span>
+
+          <h1 className="font-headline text-4xl font-extrabold leading-[1.05] tracking-tight md:text-5xl lg:text-6xl xl:text-[4rem]">
+            Advancing Health, Human Dignity, and Sustainable Development
+          </h1>
+
+          <p className="max-w-2xl font-body text-base font-medium leading-relaxed text-white md:text-lg lg:text-xl">
+            DIBF creates sustainable pathways for communities to improve lives, improve healthcare,
+            and advance human dignity through service, partnership, innovation, and purposeful giving.
+          </p>
+
+          <div className="flex flex-wrap gap-4 pt-2">
+            <Link
+              href="/get-involved"
+              className="inline-flex h-12 items-center justify-center rounded-md bg-primary px-8 text-sm font-bold text-white shadow-xl shadow-primary/25 transition-all hover:-translate-y-0.5 hover:bg-primary/90 md:h-14 md:px-10"
+            >
+              Get Involved
+            </Link>
+
+            <Link
+              href="/about"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-md border border-white/70 bg-white/10 px-8 text-sm font-bold text-white shadow-lg backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/20 md:h-14 md:px-10"
+            >
+              Learn More
+              <ChevronRight className="h-5 w-5" />
+            </Link>
+          </div>
+        </div>
+      </div>
     </section>
   );
 }

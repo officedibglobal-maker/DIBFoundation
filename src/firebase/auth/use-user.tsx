@@ -20,43 +20,40 @@ export function useUser(): UseUserResult {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (status === 'loading') {
-      setLoading(true);
-      return;
-    }
-
     if (status === 'error') {
       setLoading(false);
       setError(new Error('Firebase initialization failed.'));
       return;
     }
 
-    if (devAdminBypass) {
-      setUser({ uid: 'dev-admin' } as User);
-      setLoading(false);
-      return;
+    if (status === 'ready') {
+        if (devAdminBypass) {
+          setUser({ uid: 'dev-admin' } as User);
+          setLoading(false);
+          return;
+        }
+
+        if (!auth) {
+          setLoading(false);
+          setError(new Error("Firebase Authentication is unavailable."));
+          return;
+        }
+
+        const unsubscribe = onAuthStateChanged(
+          auth,
+          (firebaseUser) => {
+            setUser(firebaseUser);
+            setLoading(false);
+            setError(null);
+          },
+          (authError) => {
+            setError(authError);
+            setLoading(false);
+          }
+        );
+
+        return unsubscribe;
     }
-
-    if (!auth) {
-      setLoading(false);
-      setError(new Error("Firebase Authentication is unavailable."));
-      return;
-    }
-
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      (firebaseUser) => {
-        setUser(firebaseUser);
-        setLoading(false);
-        setError(null);
-      },
-      (authError) => {
-        setError(authError);
-        setLoading(false);
-      }
-    );
-
-    return unsubscribe;
   }, [auth, status]);
 
   return { user, loading, error };

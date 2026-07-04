@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useFirestore } from '@/firebase/firestore/use-firestore';
-import { getDocuments } from '@/lib/firestore/crud';
+import { getCollectionDocuments } from '@/lib/firestore/crud';
 import { HeroSlide } from '@/types/firestore';
 import { COLLECTIONS } from '@/lib/firestore/collections';
 import { Button } from '@/components/ui/button';
@@ -16,8 +16,9 @@ export function Hero() {
   useEffect(() => {
     if (status !== 'ready' || !db) return;
     const fetchSlides = async () => {
-      const slidesData = await getDocuments<HeroSlide>(db, COLLECTIONS.heroSlides, [['status', '==', 'published']]);
-      setSlides(slidesData);
+      const slidesData = await getCollectionDocuments<HeroSlide>(COLLECTIONS.heroSlides);
+      const publishedSlides = slidesData.filter(slide => slide.status === 'published');
+      setSlides(publishedSlides);
     };
     fetchSlides();
   }, [db, status]);

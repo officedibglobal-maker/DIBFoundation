@@ -2,32 +2,45 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // CMS Content - Publicly readable
-    match /siteSettings/{id} { allow read, write: if true; }
-    match /heroSections/{id} { allow read, write: if true; }
-    match /focusAreas/{id} { allow read, write: if true; }
-    match /impactStats/{id} { allow read, write: if true; }
-    match /initiatives/{id} { allow read, write: if true; }
-    match /impactStore/{id} { allow read, write: if true; }
-    match /news/{id} { allow read, write: if true; }
-    match /impactStories/{id} { allow read, write: if true; }
-    match /partners/{id} { allow read, write: if true; }
-    match /events/{id} { allow read, write: if true; }
-    match /teamMembers/{id} { allow read, write: if true; }
-    match /publications/{id} { allow read, write: if true; }
 
-    // Additional CMS Collections requested for homepage content
-    match /homepageHero/{id} { allow read, write: if true; }
-    match /heroSlides/{id} { allow read, write: if true; }
-    match /homepageSections/{id} { allow read, write: if true; }
-    match /siteContent/{id} { allow read, write: if true; }
+    function isAdmin() {
+      return request.auth.token.isAdmin == true;
+    }
+
+    // CMS Content - Publicly readable, admin write
+    match /siteSettings/{id} { allow read; allow write: if isAdmin(); }
+    match /heroSections/{id} { allow read; allow write: if isAdmin(); }
+    match /focusAreas/{id} { allow read; allow write: if isAdmin(); }
+    match /impactStats/{id} { allow read; allow write: if isAdmin(); }
+    match /initiatives/{id} { allow read; allow write: if isAdmin(); }
+    match /impactStore/{id} { allow read; allow write: if isAdmin(); }
+    match /news/{id} { allow read; allow write: if isAdmin(); }
+    match /impactStories/{id} { allow read; allow write: if isAdmin(); }
+    match /partners/{id} { allow read; allow write: if isAdmin(); }
+    match /events/{id} { allow read; allow write: if isAdmin(); }
+    match /teamMembers/{id} { allow read; allow write: if isAdmin(); }
+    match /publications/{id} { allow read; allow write: if isAdmin(); }
+    match /homepageHero/{id} { allow read; allow write: if isAdmin(); }
+    match /heroSlides/{id} { allow read; allow write: if isAdmin(); }
+    match /homepageSections/{id} { allow read; allow write: if isAdmin(); }
+    match /siteContent/{id} { allow read; allow write: if isAdmin(); }
     
-    // Public forms - allow creation and list
-    match /donations/{id} { allow read, write: if true; }
-    match /contactMessages/{id} { allow read, write: if true; }
-    match /volunteerRequests/{id} { allow read, write: if true; }
-    match /partnershipRequests/{id} { allow read, write: if true; }
-    match /newsletterSubscriptions/{id} { allow read, write: if true; }
+    // Public forms - allow creation by anyone, read/update/delete by admin
+    match /donations/{id} { allow create; allow read, update, delete: if isAdmin(); }
+    match /contactMessages/{id} { allow create; allow read, update, delete: if isAdmin(); }
+    match /volunteerRequests/{id} { allow create; allow read, update, delete: if isAdmin(); }
+    match /partnershipRequests/{id} { allow create; allow read, update, delete: if isAdmin(); }
+    match /newsletterSubscriptions/{id} {
+      allow create;
+      allow read, delete: if isAdmin();
+      allow update: if request.resource.data.status == "unsubscribed";
+    }
+
+    // Newsletter - Admin only
+    match /newsletterCampaigns/{id} { allow read, write: if isAdmin(); }
+    match /newsletterSettings/{id} { allow read, write: if isAdmin(); }
+    match /newsletterTemplates/{id} { allow read, write: if isAdmin(); }
+    match /newsletterSubscribers/{id} { allow read, write: if isAdmin(); }
 
     // Default deny for all other paths
     match /{document=**} {

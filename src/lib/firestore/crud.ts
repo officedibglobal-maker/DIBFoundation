@@ -1,126 +1,184 @@
 
 import {
-  addDoc,
   collection,
-  deleteDoc,
-  doc,
-  getDoc,
   getDocs,
-  limit,
-  orderBy,
-  query,
-  setDoc,
+  getDoc,
+  doc,
+  addDoc,
   updateDoc,
-  where,
+  deleteDoc,
+  serverTimestamp,
   type DocumentData,
+  type CollectionReference,
+  type DocumentReference,
   type Firestore,
-  type QueryConstraint,
-  type SetOptions,
-  type UpdateData,
-  type WithFieldValue,
+  type QuerySnapshot,
+  type DocumentSnapshot,
 } from "firebase/firestore";
+import { db } from "@/firebase";
 
-import { genericConverter } from "./converters";
-import type { BaseDocument } from "@/types/firestore";
-
-function requireFirestore(db: Firestore | null | undefined): Firestore {
-  if (!db) {
-    throw new Error(
-      "Firestore is unavailable. Wait for Firebase initialization to complete."
-    );
+/**
+ * Removes undefined values from an object. This is useful before writing to
+ * Firestore, which does not allow undefined values.
+ * @param obj The object to clean.
+ * @returns A new object with undefined values removed.
+ */
+const removeUndefined = (obj: any): any => {
+  if (typeof obj !== 'object' || obj === null) {
+    return obj;
   }
+  if (Array.isArray(obj)) {
+    return obj.map(removeUndefined);
+  }
+  return Object.entries(obj).reduce((acc, [key, value]) => {
+    if (value !== undefined) {
+      acc[key] = removeUndefined(value);
+    }
+    return acc;
+  }, {} as any);
+};
 
-  return db;
+/**
+ * Fetches all documents from a specified collection.
+ * @param collectionName The name of the collection.
+ * @returns A promise that resolves to an array of documents, each with its ID.
+ * @throws Throws an error if the collection name is invalid or if the fetch fails.
+ */
+export async function getCollectionDocuments<T = DocumentData>(
+  collectionName: string
+): Promise<(T & { id: string })[]> {
+  if (!collectionName) {
+    throw new Error("A valid collection name must be provided.");
+  }
+  try {
+    const collectionRef: CollectionReference<T> = collection(
+      db as Firestore,
+      collectionName
+    ) as CollectionReference<T>;
+    const querySnapshot: QuerySnapshot<T> = await getDocs(collectionRef);
+    return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  } catch (error: any) {
+    console.error(`Error fetching collection '${collectionName}':`, error);
+    throw new Error(`Failed to fetch documents from '${collectionName}'.`);
+  }
 }
 
-export async function getDocument<T extends BaseDocument>(
-  db: Firestore,
+/**
+ * Fetches a single document by its ID from a specified collection.
+ * @param collectionName The name of the collection.
+ * @param id The ID of the document.
+ * @returns A promise that resolves to the document with its ID, or null if not found.
+ * @throws Throws an error if the collection name or ID is invalid, or if the fetch fails.
+ */
+export async function getDocumentById<T = DocumentData>(
   collectionName: string,
-  documentId: string
-): Promise<T | null> {
-  const firestore = requireFirestore(db);
-
-  const reference = doc(
-    firestore,
-    collectionName,
-    documentId
-  ).withConverter(genericConverter<T>());
-
-  const snapshot = await getDoc(reference);
-
-  return snapshot.exists() ? snapshot.data() : null;
+  id: string
+): Promise<(T & { id: string }) | null> {
+  if (!collectionName || !id) {
+    throw new Error("A valid collection name and document ID must be provided.");
+  }
+  try {
+    const docRef: DocumentReference<T> = doc(
+      db as Firestore,
+      collectionName,
+      id
+    ) as DocumentReference<T>;
+    const docSnap: DocumentSnapshot<T> = await getDoc(docRef);
+    return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
+  } catch (error: any) {
+    console.error(`Error fetching document '${id}' from '${collectionName}':`, error);
+    throw new Error(`Failed to fetch document '${id}' from '${collectionName}'.`);
+  }
 }
 
-export async function getDocuments<T extends BaseDocument>(
-    db: Firestore,
-    collectionName: string,
-    constraints: QueryConstraint[] = []
-  ): Promise<T[]> {
-    const firestore = requireFirestore(db);
-    const collRef = collection(firestore, collectionName).withConverter(genericConverter<T>());
-    const q = query(collRef, ...constraints);
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => doc.data());
-}
-
-export async function createDocument<T extends BaseDocument>(
-    db: Firestore,
-    collectionName: string,
-    data: WithFieldValue<T>
-  ): Promise<string> {
-    const firestore = requireFirestore(db);
-    const collRef = collection(firestore, collectionName).withConverter(genericConverter<T>());
-    const docRef = await addDoc(collRef, data);
+/**
+ * Creates a new document in a specified collection.
+ * @param collectionName The name of the collection.
+ * @param data The data for the new document.
+ * @returns A promise that resolves to the ID of the newly created document.
+ * @throws Throws an error if the collection name is invalid or if the creation fails.
+ */
+export async function createCollectionDocument<T extends DocumentData>(
+  collectionName: string,
+  data: T
+): Promise<string> {
+  if (!collectionName) {
+    throw new Error("A valid collection name must be provided.");
+  }
+  try {
+    const cleanedData = removeUndefined(data);
+    const docRef = await addDoc(collection(db as Firestore, collectionName), {
+      ...cleanedData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
     return docRef.id;
+  } catch (error: any) {
+    console.error(`Error creating document in '${collectionName}':`, error);
+    throw new Error(`Failed to create document in '${collectionName}'.`);
+  }
 }
 
-export async function setDocument<T extends BaseDocument>(
-    db: Firestore,
-    collectionName: string,
-    documentId: string,
-    data: WithFieldValue<T>,
-    options: SetOptions = { merge: true }
-  ): Promise<void> {
-    const firestore = requireFirestore(db);
-    const docRef = doc(firestore, collectionName, documentId).withConverter(genericConverter<T>());
-    await setDoc(docRef, data, options);
+// Backward-compatible alias
+export const createDocument = createCollectionDocument;
+
+
+/**
+ * Updates an existing document in a specified collection.
+ * 'createdAt' timestamp is preserved and 'updatedAt' is set to the current server time.
+ * @param collectionName The name of the collection.
+ * @param id The ID of the document to update.
+ * @param data The data to update the document with.
+ * @throws Throws an error if the update fails.
+ */
+export async function updateCollectionDocument<T extends DocumentData>(
+  collectionName: string,
+  id: string,
+  data: Partial<T>
+): Promise<void> {
+  if (!collectionName || !id) {
+    throw new Error("A valid collection name and document ID must be provided.");
+  }
+  try {
+    const docRef = doc(db as Firestore, collectionName, id);
+    // Preserve createdAt and prevent it from being overwritten
+    const { createdAt, ...updateData } = data as any;
+    const cleanedData = removeUndefined(updateData);
+
+    await updateDoc(docRef, {
+      ...cleanedData,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error: any) {
+    console.error(`Error updating document '${id}' in '${collectionName}':`, error);
+    throw new Error(`Failed to update document '${id}' in '${collectionName}'.`);
+  }
 }
 
-export async function updateDocument<T extends DocumentData>(
-    db: Firestore,
-    collectionName: string,
-    documentId: string,
-    data: UpdateData<T>
-  ): Promise<void> {
-    const firestore = requireFirestore(db);
-    const docRef = doc(firestore, collectionName, documentId);
-    await updateDoc(docRef, data);
-}
+// Backward-compatible alias
+export const updateDocument = updateCollectionDocument;
 
-export async function deleteDocument(
-    db: Firestore,
-    collectionName: string,
-    documentId: string
-  ): Promise<void> {
-    const firestore = requireFirestore(db);
-    const docRef = doc(firestore, collectionName, documentId);
+/**
+ * Deletes a document from a specified collection.
+ * @param collectionName The name of the collection.
+ * @param id The ID of the document to delete.
+ * @throws Throws an error if the deletion fails.
+ */
+export async function deleteCollectionDocument(
+  collectionName: string,
+  id: string
+): Promise<void> {
+  if (!collectionName || !id) {
+    throw new Error("A valid collection name and document ID must be provided.");
+  }
+  try {
+    const docRef = doc(db as Firestore, collectionName, id);
     await deleteDoc(docRef);
+  } catch (error: any) {
+    console.error(`Error deleting document '${id}' in '${collectionName}':`, error);
+    throw new Error(`Failed to delete document '${id}' in '${collectionName}'.`);
+  }
 }
 
-export async function queryDocuments<T extends BaseDocument>(
-    db: Firestore,
-    collectionName: string,
-    ...constraints: QueryConstraint[]
-): Promise<T[]> {
-    const firestore = requireFirestore(db);
-
-    const collRef = collection(
-        firestore,
-        collectionName
-    ).withConverter(genericConverter<T>());
-
-    const q = query(collRef, ...constraints);
-    const querySnapshot = await getDocs(q);
-
-    return querySnapshot.docs.map((doc) => doc.data());
-}
+// Backward-compatible alias
+export const deleteDocument = deleteCollectionDocument;

@@ -17,7 +17,7 @@ export function WhatWeDoGrid({ focusAreas }: WhatWeDoGridProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                     {focusAreas.map((area) => (
                         <div key={area.id} className="text-center p-8 border rounded-lg hover:shadow-lg transition-shadow">
-                            <img src={area.iconUrl} alt={area.title} className="h-16 w-16 mx-auto mb-4" />
+                            <img src={area.imageUrl} alt={area.title} className="h-16 w-16 mx-auto mb-4" />
                             <h3 className="text-xl font-bold mb-2">{area.title}</h3>
                             <p className="text-muted-foreground">{area.summary}</p>
                         </div>

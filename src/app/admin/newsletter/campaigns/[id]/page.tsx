@@ -1,37 +1,40 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
 
-"use client";
+import { getCampaign } from "@/app/admin/newsletter/campaigns/_actions/get-campaign";
+import { CampaignView } from "@/app/admin/newsletter/campaigns/_components/campaign-view";
+import { Button } from "@/components/ui/button";
 
-import { CampaignForm } from "../CampaignForm";
-import { useFirestore } from "@/firebase/firestore/use-firestore";
-import { doc, getDoc } from "firebase/firestore";
-import { useEffect, useState } from "react";
+interface CampaignPageProps {
+  params: Promise<{ id: string }>;
+}
 
-export default function EditCampaignPage({ params }: { params: { id: string } }) {
-  const { db, status, error } = useFirestore();
-  const [campaign, setCampaign] = useState(null);
+export default async function CampaignPage({ params }: CampaignPageProps) {
+  const { id } = await params;
+  const campaign = await getCampaign(id);
 
-  useEffect(() => {
-    if (status !== 'ready' || !db) return;
-    const fetchCampaign = async () => {
-      const campaignRef = doc(db, "newsletterCampaigns", params.id);
-      const campaignSnap = await getDoc(campaignRef);
-      if (campaignSnap.exists()) {
-        setCampaign(campaignSnap.data() as any);
-      } else {
-        // Handle not found
-      }
-    };
-
-    fetchCampaign();
-  }, [db, params.id, status]);
-
-  if (status === 'loading' || !campaign) {
-    return <div>Loading...</div>;
+  if (!campaign) {
+    notFound();
   }
 
-  if (status === 'error') {
-    return <div>Error: {error?.message}</div>;
-  }
+  return (
+    <div className="container mx-auto space-y-8 py-10">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Newsletter Campaign
+          </h1>
+          <p className="mt-2 text-muted-foreground">
+            Preview, edit, and send this campaign.
+          </p>
+        </div>
 
-  return <CampaignForm campaign={campaign} campaignId={params.id} />;
+        <Button asChild variant="outline">
+          <Link href="/admin/newsletter/campaigns">Back to Campaigns</Link>
+        </Button>
+      </div>
+
+      <CampaignView campaign={campaign} />
+    </div>
+  );
 }
