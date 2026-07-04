@@ -1,175 +1,68 @@
+'use client';
 
-"use client";
-
-import { useFirestore } from '@/firebase/firestore/use-firestore';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { SectionHeader } from '@/components/shared/SectionHeader';
+import { NextPage } from 'next';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { useToast } from '@/hooks/use-toast';
-import { Heart, ShieldCheck, Globe, Zap } from 'lucide-react';
-import { ScrollReveal, RevealItem } from '@/components/shared/ScrollReveal';
-import { useEffect, useState } from 'react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Heart } from 'lucide-react';
 
-const DonationSchema = z.object({
-  fullName: z.string().min(2, "Full name is required"),
-  email: z.string().email("Invalid email"),
-  phone: z.string().optional(),
-  donationType: z.string().min(1, "Required"),
-  initiative: z.string().min(1, "Required"),
-  amount: z.string().min(1, "Amount is required"),
-  message: z.string().optional(),
-  consent: z.boolean().refine(val => val === true, "Consent required")
-});
+const GivePage: NextPage = () => (
+  <div className="bg-slate-50">
+    <div className="container mx-auto px-4 py-12">
+      <div className="text-center mb-12">
+        <Heart className="mx-auto h-12 w-12 text-primary"/>
+        <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mt-4">
+          Your Gift Makes a Difference
+        </h1>
+        <p className="mt-4 text-lg text-slate-600 max-w-3xl mx-auto">
+          Your generosity fuels our work and brings us closer to a world where everyone has access to the healthcare they need. Thank you for being a part of our community.
+        </p>
+      </div>
 
-export default function GivePage() {
-  const { db, status, error } = useFirestore();
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(true);
-  const form = useForm<z.infer<typeof DonationSchema>>({
-    resolver: zodResolver(DonationSchema),
-    defaultValues: { fullName: "", email: "", phone: "", amount: "", consent: false }
-  });
-
-  useEffect(() => {
-    if (status !== 'ready') {
-        if(status === 'error') setIsLoading(false);
-        return;
-    }
-    setIsLoading(false);
-  }, [status]);
-
-  async function onSubmit(values: z.infer<typeof DonationSchema>) {
-    if (status !== 'ready' || !db) {
-        toast({ variant: "destructive", title: "Error", description: "Database not ready. Please try again." });
-        return;
-    };
-    try {
-      await addDoc(collection(db, 'donations'), {
-        ...values,
-        amount: parseFloat(values.amount),
-        createdAt: serverTimestamp()
-      });
-      toast({ title: "Thank You!", description: "Your donation intent has been recorded. Our team will contact you." });
-      form.reset();
-    } catch (e) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to record donation. Please try again." });
-    }
-  }
-
-  if (isLoading) {
-    return <p>Loading...</p>;
-  }
-
-  if (status === 'error') {
-    return <p>Error: {error?.message}</p>;
-  }
-
-  return (
-    <div className="min-h-screen">
-      <section className="bg-secondary text-white py-24 text-center">
-        <div className="container mx-auto px-4 max-w-3xl space-y-6">
-          <span className="text-accent font-bold uppercase tracking-widest text-sm">Support Our Mission</span>
-          <h1 className="text-4xl md:text-6xl font-bold">Purposeful Giving for Lasting Impact</h1>
-          <p className="text-xl text-white/80 leading-relaxed">
-            Your contributions fuel sustainable healthcare, education, and community development across Africa.
-          </p>
-        </div>
-      </section>
-
-      <section className="py-24 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
-            <div className="space-y-8">
-              <SectionHeader 
-                title="Choose Your Support Path" 
-                subtitle="Select a giving level that resonates with your vision for global health equity."
-              />
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {[
-                  { icon: ShieldCheck, title: "100% Transparency", text: "Rigorous reporting and direct allocation to project sites." },
-                  { icon: Zap, title: "Immediate Impact", text: "Donations are deployed within 30 days to active outreach missions." },
-                  { icon: Globe, title: "Sustainable Models", text: "Focus on building resilient systems that continue providing value." },
-                  { icon: Heart, title: "Community Vetted", text: "Programs designed by medical professionals and community leaders." }
-                ].map((item, i) => (
-                  <Card key={i} className="border-none shadow-md">
-                    <CardContent className="pt-6 space-y-3">
-                      <div className="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center">
-                        <item.icon className="w-5 h-5" />
-                      </div>
-                      <h4 className="font-bold text-secondary">{item.title}</h4>
-                      <p className="text-sm text-muted-foreground">{item.text}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-
-            <Card className="shadow-2xl border-none">
-              <CardHeader className="bg-muted/30 p-8">
-                <CardTitle className="text-2xl font-bold text-secondary">Make a Contribution</CardTitle>
-                <CardDescription>Fill out the form below to initiate your donation.</CardDescription>
-              </CardHeader>
-              <CardContent className="p-8">
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      <FormField control={form.control} name="fullName" render={({ field }) => (
-                        <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem>
-                      )} />
-                      <FormField control={form.control} name="email" render={({ field }) => (
-                        <FormItem><FormLabel>Email Address</FormLabel><FormControl><Input placeholder="john@example.com" {...field} /></FormControl><FormMessage /></FormItem>
-                      )} />
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      <FormField control={form.control} name="donationType" render={({ field }) => (
-                        <FormItem><FormLabel>Donation Type</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl>
-                          <SelectContent><SelectItem value="one-time">One-time Giving</SelectItem><SelectItem value="monthly">Monthly Giving</SelectItem><SelectItem value="corporate">Corporate Giving</SelectItem></SelectContent></Select>
-                        <FormMessage /></FormItem>
-                      )} />
-                      <FormField control={form.control} name="initiative" render={({ field }) => (
-                        <FormItem><FormLabel>Preferred Initiative</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select initiative" /></SelectTrigger></FormControl>
-                          <SelectContent><SelectItem value="tinewonsa">The Tinewonsa Project</SelectItem><SelectItem value="dollar-day">Dollar-A-Day Campaign</SelectItem><SelectItem value="general">General Fund</SelectItem></SelectContent></Select>
-                        <FormMessage /></FormItem>
-                      )} />
-                    </div>
-
-                    <FormField control={form.control} name="amount" render={({ field }) => (
-                      <FormItem><FormLabel>Donation Amount (USD)</FormLabel><FormControl><Input type="number" placeholder="50.00" {...field} /></FormControl><FormMessage /></FormItem>
-                    )} />
-
-                    <FormField control={form.control} name="consent" render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-4 border rounded-md">
-                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel>I agree to the terms and privacy policy regarding donation recording.</FormLabel>
-                        </div>
-                      </FormItem>
-                    )} />
-
-                    <Button type="submit" className="w-full h-14 font-bold text-lg gap-2 shadow-lg" disabled={status !== 'ready'}>
-                      <Heart className="w-5 h-5" />
-                      Complete Donation
-                    </Button>
-                  </form>
-                </Form>
-              </CardContent>
+      <Tabs defaultValue="dollar-a-day" className="w-full max-w-3xl mx-auto">
+        <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="dollar-a-day">Dollar-A-Day</TabsTrigger>
+            <TabsTrigger value="one-time">Give Once</TabsTrigger>
+        </TabsList>
+        <TabsContent value="dollar-a-day">
+            <Card>
+                 <CardHeader className="text-center">
+                    <CardTitle className="text-2xl">Join the Dollar-A-Day Campaign</CardTitle>
+                    <CardDescription>Become a sustaining partner in our mission. For just $1 a day, you can provide steady, reliable support for our long-term healthcare priorities.</CardDescription>
+                </CardHeader>
+                <CardContent className="text-center">
+                    <p className="text-5xl font-bold">$30</p>
+                    <p className="text-slate-600">per month</p>
+                </CardContent>
+                <CardFooter className="flex-col space-y-4">
+                    <Button size="lg" className="w-full" asChild><Link href="/campaigns/dollar-a-day">Give Monthly</Link></Button>
+                    <Button variant="outline" className="w-full" asChild><Link href="/give">Give a Different Amount</Link></Button>
+                </CardFooter>
             </Card>
-          </div>
-        </div>
-      </section>
+        </TabsContent>
+         <TabsContent value="one-time">
+             <Card>
+                 <CardHeader className="text-center">
+                    <CardTitle className="text-2xl">Make a One-Time Donation</CardTitle>
+                    <CardDescription>Every gift, no matter the size, makes a difference. Make a one-time donation to support our most immediate needs.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex justify-center items-center space-x-2">
+                    <Button variant="outline" size="lg" asChild><Link href="/give">$50</Link></Button>
+                    <Button variant="outline" size="lg" asChild><Link href="/give">$100</Link></Button>
+                    <Button variant="outline" size="lg" asChild><Link href="/give">$250</Link></Button>
+                    <Button variant="outline" size="lg" asChild><Link href="/give">$500</Link></Button>
+                </CardContent>
+                <CardFooter className="flex-col space-y-4">
+                    <Button size="lg" className="w-full" asChild><Link href="/give">Donate Now</Link></Button>
+                    <p className="text-sm text-slate-600">Or enter a custom amount</p>
+                </CardFooter>
+            </Card>
+        </TabsContent>
+      </Tabs>
+
     </div>
-  );
-}
+  </div>
+);
+
+export default GivePage;

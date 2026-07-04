@@ -82,6 +82,7 @@ export interface ImpactStory extends BaseDocument {
 
 export interface Initiative extends BaseDocument {
   title: string;
+  slug?: string;
   summary: string;
   imageUrl: string;
   order: number;

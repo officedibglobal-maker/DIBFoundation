@@ -41,6 +41,22 @@ export default async function HomePage() {
     order: typeof stat.order === 'number' ? stat.order : 0,
   }));
 
+  const getInitiativeLink = (initiative: Initiative): string => {
+    if (initiative.title?.includes('Tinewonsa')) {
+      return '/initiatives/tinewonsa-project';
+    }
+    if (initiative.title?.includes('Dollar-A-Day')) {
+      return '/campaigns/dollar-a-day';
+    }
+    if (initiative.title?.includes('African Field School')) {
+      return '/initiatives/dib-african-field-school';
+    }
+    if (initiative.slug) {
+      return `/initiatives/${initiative.slug}`;
+    }
+    return '/initiatives';
+  };
+
   return (
     <main className="min-h-screen overflow-x-hidden bg-white">
       <Hero />
@@ -69,7 +85,7 @@ export default async function HomePage() {
 
               return (
                 <Link
-                  href="/initiatives"
+                  href={getInitiativeLink(item)}
                   key={item.id || `${title}-${idx}`}
                   className="group block h-full"
                 >
@@ -143,7 +159,7 @@ export default async function HomePage() {
                 size="lg"
                 className="h-14 rounded-full bg-primary px-10 font-bold"
               >
-                <Link href="/partnerships" className="inline-flex items-center gap-2">
+                <Link href="/get-involved/partner" className="inline-flex items-center gap-2">
                   Partner With Us <Handshake className="h-5 w-5" />
                 </Link>
               </Button>
@@ -233,14 +249,14 @@ export default async function HomePage() {
                 icon: ShieldCheck,
                 title: 'Volunteer',
                 text: 'Give your time and skills to uplift communities.',
-                link: '/get-involved',
+                link: '/get-involved/volunteer',
                 cta: 'Get Involved',
               },
               {
                 icon: Handshake,
                 title: 'Partner',
                 text: 'Collaborate with us to drive sustainable change.',
-                link: '/partnerships',
+                link: '/get-involved/partner',
                 cta: 'Partner With Us',
               },
             ].map((item) => (
