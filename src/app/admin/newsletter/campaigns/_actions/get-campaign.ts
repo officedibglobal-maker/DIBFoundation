@@ -73,5 +73,22 @@ export async function getCampaign(
     createdAt: serializeDate(data.createdAt),
     updatedAt: serializeDate(data.updatedAt),
     sentAt: serializeDate(data.sentAt),
+
+    showSponsorBlock: data.showSponsorBlock === true,
+    sponsorName: typeof data.sponsorName === "string" ? data.sponsorName : "",
+    sponsorLabel:
+      typeof data.sponsorLabel === "string"
+        ? data.sponsorLabel
+        : "Sponsored Message",
+    sponsorHeadline:
+      typeof data.sponsorHeadline === "string" ? data.sponsorHeadline : "",
+    sponsorBody:
+      typeof data.sponsorBody === "string" ? data.sponsorBody : "",
+    sponsorCtaLabel:
+      typeof data.sponsorCtaLabel === "string" ? data.sponsorCtaLabel : "",
+    sponsorCtaUrl:
+      typeof data.sponsorCtaUrl === "string" ? data.sponsorCtaUrl : "",
+    sponsorImageUrl:
+      typeof data.sponsorImageUrl === "string" ? data.sponsorImageUrl : "",
   };
 }

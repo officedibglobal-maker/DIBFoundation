@@ -30,6 +30,9 @@ function formatDate(value: string | null | undefined): string {
 
 export function CampaignView({ campaign }: CampaignViewProps) {
   const canEdit = campaign.status === "draft" || campaign.status === "failed";
+  const hasSponsorBlock =
+    campaign.showSponsorBlock &&
+    (campaign.sponsorName || campaign.sponsorHeadline || campaign.sponsorBody);
 
   return (
     <div className="space-y-6">
@@ -102,6 +105,55 @@ export function CampaignView({ campaign }: CampaignViewProps) {
             No HTML content available.
           </p>
         )}
+
+        {hasSponsorBlock ? (
+          <div className="mt-8 rounded-xl border border-blue-100 bg-blue-50 p-5">
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-blue-700">
+              {campaign.sponsorLabel || "Sponsored Message"}
+            </p>
+
+            {campaign.sponsorImageUrl ? (
+              <img
+                src={campaign.sponsorImageUrl}
+                alt={
+                  campaign.sponsorName ||
+                  campaign.sponsorHeadline ||
+                  "Sponsor image"
+                }
+                className="mb-4 max-h-56 rounded-lg object-cover"
+              />
+            ) : null}
+
+            {campaign.sponsorName ? (
+              <p className="text-sm text-muted-foreground">
+                {campaign.sponsorName}
+              </p>
+            ) : null}
+
+            {campaign.sponsorHeadline ? (
+              <h3 className="mt-1 text-xl font-semibold">
+                {campaign.sponsorHeadline}
+              </h3>
+            ) : null}
+
+            {campaign.sponsorBody ? (
+              <p className="mt-2 text-sm leading-6">{campaign.sponsorBody}</p>
+            ) : null}
+
+            {campaign.sponsorCtaLabel && campaign.sponsorCtaUrl ? (
+              <p className="mt-4">
+                <a
+                  href={campaign.sponsorCtaUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white"
+                >
+                  {campaign.sponsorCtaLabel}
+                </a>
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       <div className="rounded-lg border bg-white p-6">

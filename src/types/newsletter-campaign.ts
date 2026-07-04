@@ -20,6 +20,15 @@ export interface NewsletterCampaign extends BaseDocument {
   failedCount?: number;
   lastError?: string | null;
   sentAt?: Timestamp | FieldValue | null;
+
+  showSponsorBlock?: boolean;
+  sponsorName?: string;
+  sponsorLabel?: string;
+  sponsorHeadline?: string;
+  sponsorBody?: string;
+  sponsorCtaLabel?: string;
+  sponsorCtaUrl?: string;
+  sponsorImageUrl?: string;
 }
 
 export interface SerializedNewsletterCampaign {
@@ -37,4 +46,13 @@ export interface SerializedNewsletterCampaign {
   createdAt?: string | null;
   updatedAt?: string | null;
   sentAt?: string | null;
+
+  showSponsorBlock?: boolean;
+  sponsorName?: string;
+  sponsorLabel?: string;
+  sponsorHeadline?: string;
+  sponsorBody?: string;
+  sponsorCtaLabel?: string;
+  sponsorCtaUrl?: string;
+  sponsorImageUrl?: string;
 }

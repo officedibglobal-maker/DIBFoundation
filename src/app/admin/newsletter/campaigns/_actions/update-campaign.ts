@@ -12,6 +12,15 @@ const updateCampaignSchema = z.object({
   previewText: z.string().optional(),
   bodyHtml: z.string().min(1, "HTML body is required"),
   bodyText: z.string().optional(),
+
+  showSponsorBlock: z.boolean().optional(),
+  sponsorName: z.string().optional(),
+  sponsorLabel: z.string().optional(),
+  sponsorHeadline: z.string().optional(),
+  sponsorBody: z.string().optional(),
+  sponsorCtaLabel: z.string().optional(),
+  sponsorCtaUrl: z.string().optional(),
+  sponsorImageUrl: z.string().optional(),
 });
 
 export type UpdateCampaignInput = z.infer<typeof updateCampaignSchema>;
@@ -55,6 +64,15 @@ export async function updateCampaign(
     bodyHtml: parsed.data.bodyHtml,
     bodyText: parsed.data.bodyText || "",
     updatedAt: new Date(),
+
+    showSponsorBlock: parsed.data.showSponsorBlock === true,
+    sponsorName: parsed.data.sponsorName || "",
+    sponsorLabel: parsed.data.sponsorLabel || "Sponsored Message",
+    sponsorHeadline: parsed.data.sponsorHeadline || "",
+    sponsorBody: parsed.data.sponsorBody || "",
+    sponsorCtaLabel: parsed.data.sponsorCtaLabel || "",
+    sponsorCtaUrl: parsed.data.sponsorCtaUrl || "",
+    sponsorImageUrl: parsed.data.sponsorImageUrl || "",
   });
 
   revalidatePath("/admin/newsletter/campaigns");

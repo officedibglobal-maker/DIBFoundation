@@ -52,11 +52,141 @@ function stripHtml(value: string): string {
     .trim();
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function getSafeUrl(value: unknown): string {
+  if (typeof value !== "string" || !value.trim()) return "";
+
+  try {
+    const url = new URL(value.trim());
+
+    if (url.protocol === "http:" || url.protocol === "https:") {
+      return url.toString();
+    }
+
+    return "";
+  } catch {
+    return "";
+  }
+}
+
+function buildSponsorHtml(campaign: Record<string, unknown>): string {
+  if (campaign.showSponsorBlock !== true) return "";
+
+  const sponsorName =
+    typeof campaign.sponsorName === "string" ? campaign.sponsorName.trim() : "";
+  const sponsorLabel =
+    typeof campaign.sponsorLabel === "string" && campaign.sponsorLabel.trim()
+      ? campaign.sponsorLabel.trim()
+      : "Sponsored Message";
+  const sponsorHeadline =
+    typeof campaign.sponsorHeadline === "string"
+      ? campaign.sponsorHeadline.trim()
+      : "";
+  const sponsorBody =
+    typeof campaign.sponsorBody === "string" ? campaign.sponsorBody.trim() : "";
+  const sponsorCtaLabel =
+    typeof campaign.sponsorCtaLabel === "string"
+      ? campaign.sponsorCtaLabel.trim()
+      : "";
+  const sponsorCtaUrl = getSafeUrl(campaign.sponsorCtaUrl);
+  const sponsorImageUrl = getSafeUrl(campaign.sponsorImageUrl);
+
+  if (!sponsorName && !sponsorHeadline && !sponsorBody) return "";
+
+  return `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 28px 0; border: 1px solid #dbeafe; border-radius: 12px; background: #f8fbff;">
+      <tr>
+        <td style="padding: 20px;">
+          <p style="margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: #2563eb; font-weight: 700;">
+            ${escapeHtml(sponsorLabel)}
+          </p>
+          ${
+            sponsorImageUrl
+              ? `<img src="${sponsorImageUrl}" alt="${escapeHtml(
+                  sponsorName || sponsorHeadline || "Sponsor image"
+                )}" style="max-width: 100%; border-radius: 10px; margin-bottom: 14px;" />`
+              : ""
+          }
+          ${
+            sponsorName
+              ? `<p style="margin: 0 0 6px; font-size: 14px; color: #475569;">${escapeHtml(
+                  sponsorName
+                )}</p>`
+              : ""
+          }
+          ${
+            sponsorHeadline
+              ? `<h2 style="margin: 0 0 10px; font-size: 22px; line-height: 1.25; color: #0f172a;">${escapeHtml(
+                  sponsorHeadline
+                )}</h2>`
+              : ""
+          }
+          ${
+            sponsorBody
+              ? `<p style="margin: 0 0 14px; font-size: 15px; line-height: 1.6; color: #334155;">${escapeHtml(
+                  sponsorBody
+                )}</p>`
+              : ""
+          }
+          ${
+            sponsorCtaLabel && sponsorCtaUrl
+              ? `<p style="margin: 0;"><a href="${sponsorCtaUrl}" style="display: inline-block; padding: 10px 14px; background: #0b63ce; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 700;">${escapeHtml(
+                  sponsorCtaLabel
+                )}</a></p>`
+              : ""
+          }
+        </td>
+      </tr>
+    </table>
+  `;
+}
+
+function buildSponsorText(campaign: Record<string, unknown>): string {
+  if (campaign.showSponsorBlock !== true) return "";
+
+  const sponsorName =
+    typeof campaign.sponsorName === "string" ? campaign.sponsorName.trim() : "";
+  const sponsorLabel =
+    typeof campaign.sponsorLabel === "string" && campaign.sponsorLabel.trim()
+      ? campaign.sponsorLabel.trim()
+      : "Sponsored Message";
+  const sponsorHeadline =
+    typeof campaign.sponsorHeadline === "string"
+      ? campaign.sponsorHeadline.trim()
+      : "";
+  const sponsorBody =
+    typeof campaign.sponsorBody === "string" ? campaign.sponsorBody.trim() : "";
+  const sponsorCtaLabel =
+    typeof campaign.sponsorCtaLabel === "string"
+      ? campaign.sponsorCtaLabel.trim()
+      : "";
+  const sponsorCtaUrl = getSafeUrl(campaign.sponsorCtaUrl);
+
+  if (!sponsorName && !sponsorHeadline && !sponsorBody) return "";
+
+  return [
+    "",
+    sponsorLabel,
+    sponsorName,
+    sponsorHeadline,
+    sponsorBody,
+    sponsorCtaLabel && sponsorCtaUrl ? `${sponsorCtaLabel}: ${sponsorCtaUrl}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 function buildTextContent(campaign: Record<string, unknown>): string {
   const bodyText =
     typeof campaign.bodyText === "string" ? campaign.bodyText.trim() : "";
-
-  if (bodyText) return bodyText;
 
   const previewText =
     typeof campaign.previewText === "string" ? campaign.previewText.trim() : "";
@@ -66,20 +196,22 @@ function buildTextContent(campaign: Record<string, unknown>): string {
 
   const strippedHtml = bodyHtml ? stripHtml(bodyHtml) : "";
 
-  return (
-    strippedHtml ||
-    previewText ||
-    "DIB Foundation newsletter update."
-  );
+  const mainText =
+    bodyText || strippedHtml || previewText || "DIB Foundation newsletter update.";
+
+  const sponsorText = buildSponsorText(campaign);
+
+  return `${mainText}${sponsorText ? `\n${sponsorText}` : ""}`.trim();
 }
 
 function buildHtmlContent(campaign: Record<string, unknown>): string {
   const bodyHtml =
     typeof campaign.bodyHtml === "string" ? campaign.bodyHtml.trim() : "";
 
-  if (bodyHtml) return bodyHtml;
+  const mainHtml = bodyHtml || "<p>DIB Foundation newsletter update.</p>";
+  const sponsorHtml = buildSponsorHtml(campaign);
 
-  return "<p>DIB Foundation newsletter update.</p>";
+  return `${mainHtml}${sponsorHtml}`;
 }
 
 export async function sendCampaign(
