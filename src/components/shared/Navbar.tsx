@@ -23,86 +23,171 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+type NavChild = {
+  href: string;
+  label: string;
+};
+
+type NavSection = {
+  heading: string;
+  items: NavChild[];
+};
+
 type NavItem = {
   label: string;
-  href?: string;
-  items?: {
-    href: string;
-    label: string;
-    description?: string;
-  }[];
+  sections: NavSection[];
 };
 
 const NAV_ITEMS: NavItem[] = [
   {
     label: 'About',
-    items: [
-      { href: '/about', label: 'Who We Are' },
-      { href: '/about#mission', label: 'Mission & Vision' },
-      { href: '/about#leadership', label: 'Leadership & Governance' },
+    sections: [
+      {
+        heading: 'About DIBF',
+        items: [
+          { href: '/about', label: 'Who We Are' },
+          { href: '/about/mission-vision', label: 'Mission & Vision' },
+          {
+            href: '/about/leadership-governance',
+            label: 'Leadership & Governance',
+          },
+        ],
+      },
+      {
+        heading: 'Contact',
+        items: [
+          { href: '/contact', label: 'Contact Form' },
+          {
+            href: '/contact/partnership-inquiries',
+            label: 'Partnership Inquiries',
+          },
+          {
+            href: '/contact/volunteer-inquiries',
+            label: 'Volunteer Inquiries',
+          },
+          { href: '/contact/media-requests', label: 'Media Requests' },
+        ],
+      },
     ],
   },
   {
-    label: 'What We Do',
-    items: [
-      { href: '/what-we-do', label: 'Our Programs' },
-      { href: '/what-we-do#medical-outreach', label: 'Medical Outreach' },
-      { href: '/what-we-do#public-health', label: 'Public Health Education' },
-      { href: '/what-we-do#youth-impact', label: 'Youth & Student Impact' },
-      { href: '/what-we-do#mental-health', label: 'Mental Health & Wellbeing' },
-      { href: '/what-we-do#sustainable-giving', label: 'Sustainable Giving' },
-    ],
-  },
-  {
-    label: 'Initiatives',
-    items: [
-      { href: '/initiatives', label: 'All Initiatives' },
-      { href: '/initiatives#tinewonsa', label: 'The Tinewonsa Project' },
-      { href: '/initiatives#dollar-a-day', label: 'Dollar-A-Day Campaign' },
-      { href: '/initiatives#field-school', label: 'African Field School' },
-      { href: '/impact-store', label: 'DIBF Impact Store' },
+    label: 'Our Work',
+    sections: [
+      {
+        heading: 'What We Do',
+        items: [
+          {
+            href: '/what-we-do/medical-outreach-community-health',
+            label: 'Medical Outreach & Community Health',
+          },
+          {
+            href: '/what-we-do/public-health-education',
+            label: 'Public Health Education',
+          },
+          {
+            href: '/what-we-do/youth-student-impact',
+            label: 'Youth & Student Impact',
+          },
+          {
+            href: '/what-we-do/mental-health-wellbeing',
+            label: 'Mental Health & Wellbeing',
+          },
+          {
+            href: '/what-we-do/sustainable-giving-initiatives',
+            label: 'Sustainable Giving Initiatives',
+          },
+        ],
+      },
+      {
+        heading: 'Our Initiatives',
+        items: [
+          {
+            href: '/initiatives/tinewonsa-project',
+            label: 'Tinewonsa Project',
+          },
+          {
+            href: '/campaigns/dollar-a-day',
+            label: 'Dollar-A-Day Campaign',
+          },
+          {
+            href: '/initiatives/dib-african-field-school',
+            label: 'DIB African Field School',
+          },
+          {
+            href: '/impact-store',
+            label: 'DIBF Impact Store',
+          },
+        ],
+      },
     ],
   },
   {
     label: 'Impact',
-    items: [
-      { href: '/impact', label: 'Impact Overview' },
-      { href: '/impact#stories', label: 'Stories of Impact' },
-      { href: '/impact#reports', label: 'Outreach Reports' },
-      { href: '/impact#gallery', label: 'Photo & Video Gallery' },
-    ],
-  },
-  {
-    label: 'Partnerships',
-    items: [
-      { href: '/partnerships', label: 'Partner With Us' },
-      { href: '/partnerships#corporate', label: 'Corporate Partnerships' },
-      { href: '/partnerships#universities', label: 'University Collaborations' },
-      { href: '/partnerships#csr', label: 'CSR Opportunities' },
+    sections: [
+      {
+        heading: 'Impact',
+        items: [
+          { href: '/impact/stories', label: 'Stories of Impact' },
+          { href: '/impact/outreach-reports', label: 'Outreach Reports' },
+          {
+            href: '/impact/community-highlights',
+            label: 'Community Highlights',
+          },
+          { href: '/gallery', label: 'Photo & Video Gallery' },
+        ],
+      },
+      {
+        heading: 'News & Insights',
+        items: [
+          { href: '/news/articles', label: 'Articles' },
+          { href: '/news/research', label: 'Research' },
+          { href: '/publications', label: 'Publications' },
+          { href: '/news/community-stories', label: 'Community Stories' },
+        ],
+      },
     ],
   },
   {
     label: 'Get Involved',
-    items: [
-      { href: '/get-involved', label: 'Ways to Get Involved' },
-      { href: '/get-involved#volunteer', label: 'Volunteer' },
-      { href: '/get-involved#bring-a-team', label: 'Bring a Team' },
-      { href: '/get-involved#campaigns', label: 'Support a Campaign' },
-      { href: '/give', label: 'Donate' },
+    sections: [
+      {
+        heading: 'Get Involved',
+        items: [
+          { href: '/get-involved/volunteer', label: 'Volunteer' },
+          { href: '/give', label: 'Donate' },
+          { href: '/get-involved/partner', label: 'Partner With Us' },
+          {
+            href: '/get-involved/team-or-institution',
+            label: 'Bring a Team or Institution',
+          },
+          {
+            href: '/get-involved/support-a-campaign',
+            label: 'Support a Campaign',
+          },
+        ],
+      },
+      {
+        heading: 'Partnerships',
+        items: [
+          {
+            href: '/partnerships/corporate',
+            label: 'Corporate Partnerships',
+          },
+          {
+            href: '/partnerships/university-collaborations',
+            label: 'University Collaborations',
+          },
+          {
+            href: '/partnerships/development-research',
+            label: 'Development & Research Partnerships',
+          },
+          {
+            href: '/partnerships/csr-opportunities',
+            label: 'CSR Opportunities',
+          },
+        ],
+      },
     ],
-  },
-  {
-    label: 'Insights',
-    items: [
-      { href: '/news', label: 'News & Articles' },
-      { href: '/publications', label: 'Publications' },
-      { href: '/impact#stories', label: 'Community Stories' },
-      { href: '/impact#reports', label: 'Reports' },
-    ],
-  },
-  {
-    label: 'Contact',
-    href: '/contact',
   },
 ];
 
@@ -115,7 +200,9 @@ export function Navbar() {
   React.useEffect(() => {
     setMounted(true);
 
-    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 16);
+    };
 
     handleScroll();
     window.addEventListener('scroll', handleScroll);
@@ -123,9 +210,7 @@ export function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const isActiveLink = (href?: string) => {
-    if (!href) return false;
-
+  const isActiveLink = (href: string) => {
     const cleanHref = href.split('#')[0];
 
     if (cleanHref === '/') {
@@ -136,19 +221,31 @@ export function Navbar() {
   };
 
   const isActiveGroup = (item: NavItem) => {
-    if (item.href && isActiveLink(item.href)) return true;
-    return item.items?.some((child) => isActiveLink(child.href)) ?? false;
+    return item.sections.some((section) =>
+      section.items.some((child) => isActiveLink(child.href))
+    );
   };
 
   return (
     <header
       className={cn(
-        'sticky top-0 z-50 w-full transition-all duration-300',
-        isScrolled ? 'bg-white shadow-md py-2' : 'bg-white py-3'
+        'sticky top-0 z-50 w-full bg-white transition-all duration-300',
+        isScrolled
+          ? 'border-b border-slate-200 shadow-sm'
+          : 'border-b border-transparent'
       )}
     >
-      <div className="container mx-auto px-4 flex items-center justify-between gap-6">
-        <Link href="/" className="flex items-center shrink-0" aria-label="Doctors in Business Foundation Home">
+      <div
+        className={cn(
+          'mx-auto flex w-full max-w-[1500px] items-center justify-between gap-8 px-4 sm:px-6 lg:px-8 transition-all duration-300',
+          isScrolled ? 'h-[68px]' : 'h-[76px]'
+        )}
+      >
+        <Link
+          href="/"
+          className="flex shrink-0 items-center"
+          aria-label="Doctors in Business Foundation Home"
+        >
           <Image
             src="/images/brand/dibf-logo-cropped.png"
             alt="Doctors in Business Foundation"
@@ -157,76 +254,83 @@ export function Navbar() {
             priority
             className={cn(
               'w-auto object-contain transition-all duration-300',
-              isScrolled ? 'h-12' : 'h-14'
+              isScrolled ? 'h-11 xl:h-12' : 'h-12 xl:h-14'
             )}
           />
         </Link>
 
-        {/* Desktop Nav */}
-        <nav className="hidden xl:flex items-center justify-end gap-5">
-          {NAV_ITEMS.map((item) => {
-            const active = isActiveGroup(item);
+        {/* Desktop Navigation */}
+        <nav className="hidden lg:flex flex-1 items-center justify-end gap-8">
+          <div className="flex items-center justify-end gap-8">
+            {NAV_ITEMS.map((item) => {
+              const active = isActiveGroup(item);
 
-            if (item.items) {
               return (
                 <DropdownMenu key={item.label}>
                   <DropdownMenuTrigger
                     className={cn(
-                      'flex items-center gap-1 text-sm font-semibold outline-none transition-colors hover:text-primary',
-                      active ? 'text-primary' : 'text-secondary/80'
+                      'group flex items-center gap-1.5 whitespace-nowrap text-sm font-semibold outline-none transition-colors',
+                      active
+                        ? 'text-primary'
+                        : 'text-slate-800 hover:text-primary'
                     )}
                   >
                     {item.label}
-                    <ChevronDown className="w-4 h-4 opacity-60" />
+                    <ChevronDown className="h-4 w-4 opacity-60 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                   </DropdownMenuTrigger>
 
                   <DropdownMenuContent
                     align="start"
-                    className="w-64 p-2 rounded-xl shadow-2xl border-muted"
+                    sideOffset={18}
+                    className="w-[620px] rounded-2xl border border-slate-100 bg-white p-5 shadow-2xl"
                   >
-                    {item.items.map((child) => (
-                      <DropdownMenuItem key={`${item.label}-${child.label}`} asChild>
-                        <Link
-                          href={child.href}
-                          className={cn(
-                            'w-full cursor-pointer rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-muted',
-                            isActiveLink(child.href) && 'bg-muted text-primary'
-                          )}
-                        >
-                          {child.label}
-                        </Link>
-                      </DropdownMenuItem>
-                    ))}
+                    <div className="grid grid-cols-2 gap-5">
+                      {item.sections.map((section) => (
+                        <div key={`${item.label}-${section.heading}`}>
+                          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-primary">
+                            {section.heading}
+                          </p>
+
+                          <div className="space-y-1">
+                            {section.items.map((child) => (
+                              <DropdownMenuItem
+                                key={`${section.heading}-${child.label}`}
+                                asChild
+                                className="p-0"
+                              >
+                                <Link
+                                  href={child.href}
+                                  className={cn(
+                                    'block w-full rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 outline-none transition-colors hover:bg-slate-50 hover:text-primary',
+                                    isActiveLink(child.href) &&
+                                      'bg-primary/10 text-primary'
+                                  )}
+                                >
+                                  {child.label}
+                                </Link>
+                              </DropdownMenuItem>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </DropdownMenuContent>
                 </DropdownMenu>
               );
-            }
+            })}
+          </div>
 
-            return (
-              <Link
-                key={item.label}
-                href={item.href || '/'}
-                className={cn(
-                  'text-sm font-semibold transition-colors hover:text-primary',
-                  active ? 'text-primary' : 'text-secondary/80'
-                )}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-
-          <div className="flex items-center gap-3 ml-2">
+          <div className="flex items-center gap-4 pl-2">
             <CartDrawer>
               <Button
                 variant="ghost"
                 size="icon"
-                className="relative h-10 w-10 hover:bg-muted rounded-full"
+                className="relative h-11 w-11 rounded-full text-slate-700 hover:bg-slate-100 hover:text-primary"
                 aria-label="Open cart"
               >
-                <ShoppingCart className="w-5 h-5 text-secondary" />
+                <ShoppingCart className="h-5 w-5" />
                 {mounted && cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-accent text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-md animate-in zoom-in-50">
+                  <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white shadow">
                     {cartCount}
                   </span>
                 )}
@@ -235,23 +339,28 @@ export function Navbar() {
 
             <Button
               asChild
-              className="gap-2 px-7 h-11 rounded-full font-bold shadow-lg hover:scale-105 transition-transform"
+              className="h-12 rounded-full px-8 text-sm font-bold shadow-lg transition-transform hover:scale-[1.03]"
             >
-              <Link href="/give">
-                <Heart className="w-4 h-4 fill-current" />
+              <Link href="/give" className="gap-2">
+                <Heart className="h-4 w-4 fill-current" />
                 Give
               </Link>
             </Button>
           </div>
         </nav>
 
-        {/* Mobile Nav */}
-        <div className="xl:hidden flex items-center gap-3">
+        {/* Mobile / Tablet Navigation */}
+        <div className="flex items-center gap-2 lg:hidden">
           <CartDrawer>
-            <Button variant="ghost" size="icon" className="relative h-9 w-9" aria-label="Open cart">
-              <ShoppingCart className="w-4 h-4" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative h-10 w-10 rounded-full"
+              aria-label="Open cart"
+            >
+              <ShoppingCart className="h-5 w-5" />
               {mounted && cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-accent text-white text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
+                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[8px] font-bold text-white shadow-sm">
                   {cartCount}
                 </span>
               )}
@@ -260,12 +369,17 @@ export function Navbar() {
 
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="Open menu">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 rounded-full"
+                aria-label="Open menu"
+              >
                 <Menu className="h-6 w-6" />
               </Button>
             </SheetTrigger>
 
-            <SheetContent side="right" className="w-[320px] overflow-y-auto">
+            <SheetContent side="right" className="w-[360px] overflow-y-auto">
               <SheetHeader>
                 <SheetTitle className="text-left">
                   <Image
@@ -279,47 +393,45 @@ export function Navbar() {
                 </SheetTitle>
               </SheetHeader>
 
-              <nav className="flex flex-col gap-5 mt-8">
+              <nav className="mt-8 flex flex-col gap-7 pb-8">
                 {NAV_ITEMS.map((item) => (
-                  <div key={item.label} className="space-y-3">
-                    {item.href && !item.items ? (
-                      <Link
-                        href={item.href}
-                        className={cn(
-                          'block text-sm font-bold uppercase tracking-widest transition-colors hover:text-primary',
-                          isActiveLink(item.href) ? 'text-primary' : 'text-secondary'
-                        )}
+                  <div key={item.label} className="space-y-4">
+                    <p className="text-base font-bold text-primary">
+                      {item.label}
+                    </p>
+
+                    {item.sections.map((section) => (
+                      <div
+                        key={`${item.label}-${section.heading}`}
+                        className="space-y-2"
                       >
-                        {item.label}
-                      </Link>
-                    ) : (
-                      <>
-                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                          {item.label}
+                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
+                          {section.heading}
                         </p>
 
-                        <div className="flex flex-col gap-2 pl-2">
-                          {item.items?.map((child) => (
+                        <div className="flex flex-col gap-1 border-l border-slate-200 pl-4">
+                          {section.items.map((child) => (
                             <Link
-                              key={`${item.label}-${child.label}`}
+                              key={`${section.heading}-${child.label}`}
                               href={child.href}
                               className={cn(
-                                'text-sm font-medium text-secondary/80 hover:text-primary transition-colors',
-                                isActiveLink(child.href) && 'text-primary font-bold'
+                                'rounded-lg px-2 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-primary',
+                                isActiveLink(child.href) &&
+                                  'bg-primary/10 font-bold text-primary'
                               )}
                             >
                               {child.label}
                             </Link>
                           ))}
                         </div>
-                      </>
-                    )}
+                      </div>
+                    ))}
                   </div>
                 ))}
 
-                <Button asChild className="mt-2 gap-2 rounded-full font-bold">
-                  <Link href="/give">
-                    <Heart className="w-4 h-4 fill-current" />
+                <Button asChild className="mt-2 h-12 rounded-full font-bold">
+                  <Link href="/give" className="gap-2">
+                    <Heart className="h-4 w-4 fill-current" />
                     Give
                   </Link>
                 </Button>
