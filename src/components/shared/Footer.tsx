@@ -1,7 +1,7 @@
-
 "use client";
 
 import * as React from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Facebook, Twitter, Instagram, Linkedin, Heart, Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -64,10 +64,12 @@ export function Footer() {
         subscribedAt: serverTimestamp(),
         status: 'active'
       });
+
       toast({
         title: "Subscribed!",
         description: "Thank you for joining our community. We'll keep you updated on our impact.",
       });
+
       setEmail('');
     } catch (error) {
       toast({
@@ -80,12 +82,24 @@ export function Footer() {
     }
   };
 
-  const FooterLinkGroup = ({ title, links }: { title: string, links: { href: string, label: string }[] }) => (
-    <div className='space-y-6'>
-      <h3 className="font-bold text-lg border-l-4 border-primary pl-3">{title}</h3>
+  const FooterLinkGroup = ({
+    title,
+    links,
+  }: {
+    title: string;
+    links: { href: string; label: string }[];
+  }) => (
+    <div className="space-y-6">
+      <h3 className="font-bold text-lg border-l-4 border-primary pl-3">
+        {title}
+      </h3>
       <ul className="space-y-3 text-white/60 text-sm">
-        {links.map(link => (
-          <li key={link.href}><Link href={link.href} className="hover:text-accent transition-colors">{link.label}</Link></li>
+        {links.map((link) => (
+          <li key={link.href}>
+            <Link href={link.href} className="hover:text-accent transition-colors">
+              {link.label}
+            </Link>
+          </li>
         ))}
       </ul>
     </div>
@@ -98,18 +112,40 @@ export function Footer() {
           {/* Brand & Purpose */}
           <div className="space-y-6">
             <Link href="/" className="flex items-center gap-3">
-              <div className="bg-primary p-2 rounded-lg text-white font-bold text-xl">DIBF</div>
-              <span className="font-bold text-xl">DIBF Global Impact</span>
+              <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-white p-1.5 shadow-sm">
+                <Image
+                  src="/images/brand/dibf-logo-cropped.png"
+                  alt="Doctors in Business Foundation Logo"
+                  fill
+                  className="object-contain"
+                  sizes="64px"
+                  priority
+                />
+              </div>
+
+              <span className="font-bold text-xl leading-tight">
+                DIBF Global Impact
+              </span>
             </Link>
+
             <p className="text-white/60 text-sm leading-relaxed">
               Advancing Health, Human Dignity, and Sustainable Development Across Africa and the Global Community. 
               DIBF is the nonprofit arm of Doctors in Business Global.
             </p>
+
             <div className="flex gap-4">
-              <Link href="https://www.facebook.com/DoctorsInBusiness" className="p-2 bg-white/5 rounded-full hover:bg-primary transition-colors"><Facebook className="w-4 h-4" /></Link>
-              <Link href="https://www.twitter.com/DIBF" className="p-2 bg-white/5 rounded-full hover:bg-primary transition-colors"><Twitter className="w-4 h-4" /></Link>
-              <Link href="https://www.instagram.com/dibfoundation" className="p-2 bg-white/5 rounded-full hover:bg-primary transition-colors"><Instagram className="w-4 h-4" /></Link>
-              <Link href="https://www.linkedin.com/company/doctors-in-business-dib" className="p-2 bg-white/5 rounded-full hover:bg-primary transition-colors"><Linkedin className="w-4 h-4" /></Link>
+              <Link href="https://www.facebook.com/DoctorsInBusiness" className="p-2 bg-white/5 rounded-full hover:bg-primary transition-colors">
+                <Facebook className="w-4 h-4" />
+              </Link>
+              <Link href="https://www.twitter.com/DIBF" className="p-2 bg-white/5 rounded-full hover:bg-primary transition-colors">
+                <Twitter className="w-4 h-4" />
+              </Link>
+              <Link href="https://www.instagram.com/dibfoundation" className="p-2 bg-white/5 rounded-full hover:bg-primary transition-colors">
+                <Instagram className="w-4 h-4" />
+              </Link>
+              <Link href="https://www.linkedin.com/company/doctors-in-business-dib" className="p-2 bg-white/5 rounded-full hover:bg-primary transition-colors">
+                <Linkedin className="w-4 h-4" />
+              </Link>
             </div>
           </div>
 
@@ -128,9 +164,16 @@ export function Footer() {
           {/* Initiatives & Newsletter */}
           <div className="space-y-10">
             <FooterLinkGroup title="Initiatives" links={initiativesLinks} />
-            <div className='space-y-6'>
-              <h3 className="font-bold text-lg border-l-4 border-primary pl-3">Get Updates</h3>
-              <p className="text-xs text-white/50 italic">Join our community for impact updates and news.</p>
+
+            <div className="space-y-6">
+              <h3 className="font-bold text-lg border-l-4 border-primary pl-3">
+                Get Updates
+              </h3>
+
+              <p className="text-xs text-white/50 italic">
+                Join our community for impact updates and news.
+              </p>
+
               <form onSubmit={handleSubscribe} className="flex gap-2">
                 <Input 
                   type="email"
@@ -140,15 +183,21 @@ export function Footer() {
                   placeholder="Email Address" 
                   className="bg-white/5 border-white/10 text-white placeholder:text-white/30" 
                 />
+
                 <Button 
                   type="submit" 
                   size="icon" 
                   disabled={isSubmitting || status !== 'ready'}
                   className="shrink-0"
                 >
-                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  {isSubmitting ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
                 </Button>
               </form>
+
               <Button asChild className="w-full gap-2 font-bold" variant="default">
                 <Link href="/give">
                   <Heart className="w-4 h-4 fill-current" />
@@ -160,11 +209,20 @@ export function Footer() {
         </div>
 
         <div className="mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-white/40 text-xs">
-          <p>© {currentYear} Doctors in Business Foundation (DIBF). All rights reserved.</p>
+          <p>
+            © {currentYear} Doctors in Business Foundation (DIBF). All rights reserved.
+          </p>
+
           <div className="flex gap-6">
-            <Link href="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link>
-            <Link href="/terms-of-use" className="hover:text-white transition-colors">Terms of Use</Link>
-            <Link href="/sitemap" className="hover:text-white transition-colors">Sitemap</Link>
+            <Link href="/privacy-policy" className="hover:text-white transition-colors">
+              Privacy Policy
+            </Link>
+            <Link href="/terms-of-use" className="hover:text-white transition-colors">
+              Terms of Use
+            </Link>
+            <Link href="/sitemap" className="hover:text-white transition-colors">
+              Sitemap
+            </Link>
           </div>
         </div>
       </div>

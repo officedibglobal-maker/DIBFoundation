@@ -32,6 +32,7 @@ import {
   ShieldCheck,
   ChevronRight,
   LucideIcon,
+  Home,
 } from "lucide-react";
 import {
   Collapsible,
@@ -115,6 +116,7 @@ const sidebarNavItems: NavItem[] = [
     title: "Website Configuration",
     icon: Settings2,
     children: [
+      { title: "Homepage", href: "/admin/website-configuration/homepage", icon: Home },
       { title: "General Settings", href: "/admin/settings", icon: Settings },
       { title: "Navigation", href: "/admin/navigation", icon: Navigation },
       { title: "Footer", href: "/admin/footer", icon: Footprints },

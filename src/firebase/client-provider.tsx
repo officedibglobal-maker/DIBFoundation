@@ -1,43 +1,46 @@
-"use client";
+'use client';
 
+import * as React from 'react';
 import {
-  createContext,
-  useContext,
-  useMemo,
-  type ReactNode,
-} from "react";
+  initializeFirebase,
+  type FirebaseServices,
+  type FirebaseStatus,
+} from './index';
 
-import { app, auth, db, storage } from "./index";
-import type { FirebaseServices } from "./index";
-
-export type FirebaseStatus =
-  | "ready"
-  | "error";
-
-export interface FirebaseContextValue extends FirebaseServices {
+export interface FirebaseContextValue extends Partial<FirebaseServices> {
   status: FirebaseStatus;
-  error: Error | null;
+  error?: Error;
 }
 
-export const FirebaseContext =
-  createContext<FirebaseContextValue | null>(null);
+const FirebaseContext = React.createContext<FirebaseContextValue>({
+  status: 'loading',
+});
 
-export function FirebaseClientProvider({
-  children,
-}: {
-  children: ReactNode;
-}) {
-  const value = useMemo(
-    () => ({
-      status: "ready" as FirebaseStatus,
-      app,
-      db,
-      auth,
-      storage,
-      error: null,
-    }),
-    []
-  );
+export function FirebaseProvider({ children }: { children: React.ReactNode }) {
+  const [value, setValue] = React.useState<FirebaseContextValue>({
+    status: 'loading',
+  });
+
+  React.useEffect(() => {
+    try {
+      const services = initializeFirebase();
+
+      setValue({
+        ...services,
+        status: 'ready',
+      });
+    } catch (error) {
+      console.error('Firebase initialization failed:', error);
+
+      setValue({
+        status: 'error',
+        error:
+          error instanceof Error
+            ? error
+            : new Error('Firebase initialization failed'),
+      });
+    }
+  }, []);
 
   return (
     <FirebaseContext.Provider value={value}>
@@ -46,14 +49,14 @@ export function FirebaseClientProvider({
   );
 }
 
-export function useFirebase(): FirebaseContextValue {
-  const context = useContext(FirebaseContext);
+export function FirebaseClientProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return <FirebaseProvider>{children}</FirebaseProvider>;
+}
 
-  if (!context) {
-    throw new Error(
-      "useFirebase must be used inside FirebaseClientProvider."
-    );
-  }
-
-  return context;
+export function useFirebase() {
+  return React.useContext(FirebaseContext);
 }

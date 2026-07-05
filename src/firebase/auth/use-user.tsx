@@ -1,60 +1,37 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
-import { type User, onAuthStateChanged } from 'firebase/auth';
-import { useFirebase } from '../client-provider';
+import * as React from 'react';
+import { onAuthStateChanged, type User } from 'firebase/auth';
+import { useFirebase } from '@/firebase/client-provider';
 
-interface UseUserResult {
-  user: User | null;
-  loading: boolean;
-  error: Error | null;
-}
-
-const devAdminBypass = process.env.NEXT_PUBLIC_DEV_ADMIN_BYPASS === 'true';
-
-export function useUser(): UseUserResult {
+export function useUser() {
   const { auth, status } = useFirebase();
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [user, setUser] = React.useState<User | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
 
-  useEffect(() => {
-    if (status === 'error') {
-      setLoading(false);
-      setError(new Error('Firebase initialization failed.'));
+  React.useEffect(() => {
+    if (status === 'loading') {
+      setIsLoading(true);
       return;
     }
 
-    if (status === 'ready') {
-        if (devAdminBypass) {
-          setUser({ uid: 'dev-admin' } as User);
-          setLoading(false);
-          return;
-        }
-
-        if (!auth) {
-          setLoading(false);
-          setError(new Error("Firebase Authentication is unavailable."));
-          return;
-        }
-
-        const unsubscribe = onAuthStateChanged(
-          auth,
-          (firebaseUser) => {
-            setUser(firebaseUser);
-            setLoading(false);
-            setError(null);
-          },
-          (authError) => {
-            setError(authError);
-            setLoading(false);
-          }
-        );
-
-        return unsubscribe;
+    if (status === 'error' || !auth) {
+      setUser(null);
+      setIsLoading(false);
+      return;
     }
+
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
   }, [auth, status]);
 
-  return { user, loading, error };
+  return {
+    user,
+    isLoading,
+    isAuthenticated: Boolean(user),
+  };
 }
