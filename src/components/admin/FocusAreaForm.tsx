@@ -1,9 +1,9 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -25,7 +25,7 @@ import {
 import { iconMap } from "@/components/IconMap";
 
 interface FocusAreaFormProps {
-  onSubmit: (values: z.infer<typeof FocusAreaSchema>) => void;
+  onSubmit: (values: z.infer<typeof FocusAreaSchema>) => void | Promise<void>;
   defaultValues?: z.infer<typeof FocusAreaSchema>;
 }
 
@@ -37,6 +37,8 @@ export function FocusAreaForm({ onSubmit, defaultValues }: FocusAreaFormProps) {
       icon: "",
     },
   });
+
+  const iconNames = Object.keys(iconMap).sort();
 
   return (
     <Form {...form}>
@@ -54,27 +56,27 @@ export function FocusAreaForm({ onSubmit, defaultValues }: FocusAreaFormProps) {
             </FormItem>
           )}
         />
+
         <FormField
           control={form.control}
           name="icon"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Icon</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select
+                onValueChange={field.onChange}
+                value={field.value || undefined}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select an icon" />
                   </SelectTrigger>
                 </FormControl>
+
                 <SelectContent>
-                  {Object.keys(iconMap).map((iconName) => (
+                  {iconNames.map((iconName) => (
                     <SelectItem key={iconName} value={iconName}>
-                      <div className="flex items-center">
-                        {iconMap[iconName as keyof typeof iconMap]({
-                          className: "mr-2 h-5 w-5",
-                        })}
-                        {iconName}
-                      </div>
+                      {iconName}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -83,7 +85,10 @@ export function FocusAreaForm({ onSubmit, defaultValues }: FocusAreaFormProps) {
             </FormItem>
           )}
         />
-        <Button type="submit">Submit</Button>
+
+        <Button type="submit" disabled={form.formState.isSubmitting}>
+          {form.formState.isSubmitting ? "Saving..." : "Submit"}
+        </Button>
       </form>
     </Form>
   );

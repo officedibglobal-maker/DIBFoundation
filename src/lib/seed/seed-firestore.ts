@@ -26,6 +26,8 @@ async function seedCollection(
     mode: options.mode,
   };
 
+  const setOptions = { merge: !options.overwrite };
+
   try {
     if (options.mode === "seed") {
       const batch = writeBatch(db);
@@ -34,7 +36,7 @@ async function seedCollection(
       if (entry.supportsContentSeed && documents.length > 0) {
         documents.forEach((item: SeedDocument) => {
           const docRef = doc(db, entry.collectionPath, item._id);
-          batch.set(docRef, { ...item, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true });
+          batch.set(docRef, { ...item, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }, setOptions);
         });
         result.count = documents.length;
       } else if (entry.supportsSchemaSeed) {
@@ -75,6 +77,8 @@ async function seedSubcollections(
   const results: SeedResult[] = [];
   if (!parentEntry.subcollections || !Array.isArray(parentEntry.documents)) return results;
 
+  const setOptions = { merge: !options.overwrite };
+
   for (const subcollectionDef of parentEntry.subcollections) {
     for (const parentDoc of parentEntry.documents) {
       const subcollectionPath = `${parentEntry.collectionPath}/${parentDoc._id}/${subcollectionDef.collectionPath}`;
@@ -92,7 +96,7 @@ async function seedSubcollections(
             const batch = writeBatch(db);
             subcollectionDocs.forEach((docData) => {
               const docRef = doc(db, subcollectionPath, docData._id);
-              batch.set(docRef, { ...docData, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true });
+              batch.set(docRef, { ...docData, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }, setOptions);
             });
             await batch.commit();
           }

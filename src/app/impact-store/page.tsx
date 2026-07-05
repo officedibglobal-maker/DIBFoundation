@@ -1,23 +1,11 @@
-"use client";
+'use client';
 
-import {
-  Suspense,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-import {
-  collection,
-  query,
-  where,
-} from "firebase/firestore";
-import {
-  usePathname,
-  useRouter,
-  useSearchParams,
-} from "next/navigation";
-import Image from "next/image";
-import Link from "next/link";
+import * as React from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
+import { collection, query, where } from 'firebase/firestore';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
+import Link from 'next/link';
 import {
   Filter,
   Heart,
@@ -25,27 +13,35 @@ import {
   ShoppingBag,
   ShoppingCart,
   Sparkles,
-} from "lucide-react";
+} from 'lucide-react';
 
-import { RevealItem } from "@/components/shared/ScrollReveal";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { RevealItem } from '@/components/shared/ScrollReveal';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { useCollection } from "@/firebase/firestore/use-collection";
-import { useFirestore } from "@/firebase/firestore/use-firestore";
-import { useCart } from "@/hooks/use-cart";
-import { COLLECTIONS } from "@/lib/firestore/collections";
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { useCollection } from '@/firebase/firestore/use-collection';
+import { useFirestore } from '@/firebase/firestore/use-firestore';
+import { useCart } from '@/hooks/use-cart';
+import { COLLECTIONS } from '@/lib/firestore/collections';
 import {
   impactStoreCategoryConverter,
   impactStoreProductConverter,
-} from "@/lib/firestore/converters";
+} from '@/lib/firestore/converters';
+
+export default function ImpactStorePage() {
+  return (
+    <Suspense fallback={<ImpactStoreLoadingState />}>
+      <ImpactStorePageContent />
+    </Suspense>
+  );
+}
 
 function ImpactStorePageContent() {
   const { db, status, error } = useFirestore();
@@ -56,160 +52,156 @@ function ImpactStorePageContent() {
   const pathname = usePathname();
 
   const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
 
   const productsQuery = useMemo(() => {
-    if (status !== "ready" || !db) {
+    if (status !== 'ready' || !db) {
       return null;
     }
 
     const productsRef = collection(
       db,
-      COLLECTIONS.impactStore,
+      COLLECTIONS.impactStore
     ).withConverter(impactStoreProductConverter);
 
     return query(
       productsRef,
-      where("status", "==", "published"),
-      where("active", "==", true),
+      where('status', '==', 'published'),
+      where('active', '==', true)
     );
   }, [db, status]);
 
   const categoriesQuery = useMemo(() => {
-    if (status !== "ready" || !db) {
+    if (status !== 'ready' || !db) {
       return null;
     }
 
     const categoriesRef = collection(
       db,
-      COLLECTIONS.impactStoreCategories,
+      COLLECTIONS.impactStoreCategories
     ).withConverter(impactStoreCategoryConverter);
 
-    return query(
-      categoriesRef,
-      where("status", "==", "published"),
-    );
+    return query(categoriesRef, where('status', '==', 'published'));
   }, [db, status]);
 
-  const {
-    data: products,
-    loading: productsLoading,
-  } = useCollection(productsQuery);
+  const { data: products, loading: productsLoading } =
+    useCollection(productsQuery);
 
-  const {
-    data: categories,
-    loading: categoriesLoading,
-  } = useCollection(categoriesQuery);
+  const { data: categories, loading: categoriesLoading } =
+    useCollection(categoriesQuery);
 
   useEffect(() => {
-    if (status === "ready" || status === "error") {
+    if (status === 'ready' || status === 'error') {
       setIsLoading(false);
     }
   }, [status]);
 
   useEffect(() => {
-    console.info(
-      "Loaded public products:",
-      products.length,
-    );
+    console.info('Loaded public products:', products.length);
   }, [products]);
 
   const selectedCategory = useMemo(
-    () => searchParams.get("category") || "all",
-    [searchParams],
+    () => searchParams.get('category') || 'all',
+    [searchParams]
   );
 
   const sortedProducts = useMemo(() => {
     return [...products].sort(
       (firstProduct, secondProduct) =>
-        (firstProduct.order ?? 0) -
-        (secondProduct.order ?? 0),
+        (firstProduct.order ?? 0) - (secondProduct.order ?? 0)
     );
   }, [products]);
 
   const sortedCategories = useMemo(() => {
     return [...categories].sort(
       (firstCategory, secondCategory) =>
-        (firstCategory.order ?? 0) -
-        (secondCategory.order ?? 0),
+        (firstCategory.order ?? 0) - (secondCategory.order ?? 0)
     );
   }, [categories]);
 
   const filteredItems = useMemo(() => {
-    const normalizedSearchQuery =
-      searchQuery.trim().toLowerCase();
+    const normalizedSearchQuery = searchQuery.trim().toLowerCase();
 
     return sortedProducts.filter((item) => {
-      const categoryName =
-        item.categoryName?.toLowerCase() ?? "";
+      const productCategory = item as typeof item & {
+        categorySlug?: string;
+        categoryId?: string;
+        category?: string;
+      };
+
+      const categoryName = item.categoryName?.toLowerCase() ?? '';
+
+      const categorySlug =
+        typeof productCategory.categorySlug === 'string'
+          ? productCategory.categorySlug.toLowerCase()
+          : '';
+
+      const categoryId =
+        typeof productCategory.categoryId === 'string'
+          ? productCategory.categoryId.toLowerCase()
+          : '';
+
+      const category =
+        typeof productCategory.category === 'string'
+          ? productCategory.category.toLowerCase()
+          : '';
+
+      const selected = selectedCategory.toLowerCase();
 
       const matchesCategory =
-        selectedCategory === "all" ||
-        categoryName === selectedCategory.toLowerCase();
+        selectedCategory === 'all' ||
+        categoryName === selected ||
+        categorySlug === selected ||
+        categoryId === selected ||
+        category === selected;
+
+      const productName = item.name?.toLowerCase() ?? '';
+      const description = item.description?.toLowerCase() ?? '';
+      const shortDescription = item.shortDescription?.toLowerCase() ?? '';
 
       const matchesSearch =
         normalizedSearchQuery.length === 0 ||
-        item.name
-          .toLowerCase()
-          .includes(normalizedSearchQuery) ||
-        item.description
-          .toLowerCase()
-          .includes(normalizedSearchQuery) ||
-        item.shortDescription
-          ?.toLowerCase()
-          .includes(normalizedSearchQuery);
+        productName.includes(normalizedSearchQuery) ||
+        description.includes(normalizedSearchQuery) ||
+        shortDescription.includes(normalizedSearchQuery);
 
       return matchesCategory && matchesSearch;
     });
-  }, [
-    searchQuery,
-    selectedCategory,
-    sortedProducts,
-  ]);
+  }, [searchQuery, selectedCategory, sortedProducts]);
 
   function handleCategoryChange(slug: string) {
-    const params = new URLSearchParams(
-      searchParams.toString(),
-    );
+    const params = new URLSearchParams(searchParams.toString());
 
-    if (slug === "all") {
-      params.delete("category");
+    if (slug === 'all') {
+      params.delete('category');
     } else {
-      params.set("category", slug);
+      params.set('category', slug);
     }
 
     const queryString = params.toString();
 
-    router.push(
-      queryString
-        ? `${pathname}?${queryString}`
-        : pathname,
-    );
+    router.push(queryString ? `${pathname}?${queryString}` : pathname);
   }
 
   function clearFilters() {
-    setSearchQuery("");
-    handleCategoryChange("all");
+    setSearchQuery('');
+    handleCategoryChange('all');
   }
 
   const impactBenefits = [
-    "Health and community wellbeing",
-    "Youth empowerment",
-    "Mental health awareness",
-    "Medical outreach initiatives",
-    "Sustainable giving efforts",
-    "Humanitarian programs",
+    'Health and community wellbeing',
+    'Youth empowerment',
+    'Mental health awareness',
+    'Medical outreach initiatives',
+    'Sustainable giving efforts',
+    'Humanitarian programs',
   ];
 
-  if (
-    isLoading ||
-    productsLoading ||
-    categoriesLoading
-  ) {
+  if (isLoading || productsLoading || categoriesLoading) {
     return <ImpactStoreLoadingState />;
   }
 
-  if (status === "error") {
+  if (status === 'error') {
     return (
       <main className="min-h-screen bg-muted/30">
         <section className="container mx-auto px-4 py-24">
@@ -222,7 +214,7 @@ function ImpactStorePageContent() {
 
             <p className="text-sm text-muted-foreground">
               {error?.message ??
-                "The Impact Store could not be loaded. Please try again later."}
+                'The Impact Store could not be loaded. Please try again later.'}
             </p>
           </div>
         </section>
@@ -242,7 +234,6 @@ function ImpactStorePageContent() {
             <h1 className="font-headline text-4xl font-bold leading-tight md:text-6xl">
               Shop With Purpose.
               <br />
-
               <span className="text-accent">
                 Support Meaningful Impact.
               </span>
@@ -251,11 +242,9 @@ function ImpactStorePageContent() {
 
           <RevealItem>
             <p className="font-body text-lg italic leading-relaxed text-white/80 md:text-xl">
-              “The DIBF Impact Store transforms
-              everyday purchases into opportunities for
-              impact. Through purpose-driven products,
-              every purchase contributes toward
-              initiatives that advance health, human
+              “The DIBF Impact Store transforms everyday purchases into
+              opportunities for impact. Through purpose-driven products, every
+              purchase contributes toward initiatives that advance health, human
               dignity, and sustainable development.”
             </p>
           </RevealItem>
@@ -273,15 +262,9 @@ function ImpactStorePageContent() {
             <div className="flex flex-wrap justify-center gap-2 lg:justify-start">
               <Button
                 type="button"
-                variant={
-                  selectedCategory === "all"
-                    ? "default"
-                    : "outline"
-                }
+                variant={selectedCategory === 'all' ? 'default' : 'outline'}
                 size="sm"
-                onClick={() =>
-                  handleCategoryChange("all")
-                }
+                onClick={() => handleCategoryChange('all')}
                 className="h-9 gap-2 rounded-full px-4 text-xs"
               >
                 <Filter className="h-3.5 w-3.5" />
@@ -293,14 +276,10 @@ function ImpactStorePageContent() {
                   key={category.id ?? category.slug}
                   type="button"
                   variant={
-                    selectedCategory === category.slug
-                      ? "default"
-                      : "outline"
+                    selectedCategory === category.slug ? 'default' : 'outline'
                   }
                   size="sm"
-                  onClick={() =>
-                    handleCategoryChange(category.slug)
-                  }
+                  onClick={() => handleCategoryChange(category.slug)}
                   className="h-9 gap-2 rounded-full px-4 text-xs"
                 >
                   {category.name}
@@ -317,9 +296,7 @@ function ImpactStorePageContent() {
                 placeholder="Search products..."
                 className="h-10 rounded-full border-muted pl-10"
                 value={searchQuery}
-                onChange={(event) =>
-                  setSearchQuery(event.target.value)
-                }
+                onChange={(event) => setSearchQuery(event.target.value)}
               />
             </div>
           </div>
@@ -336,11 +313,7 @@ function ImpactStorePageContent() {
                 No products found in this collection.
               </p>
 
-              <Button
-                type="button"
-                variant="outline"
-                onClick={clearFilters}
-              >
+              <Button type="button" variant="outline" onClick={clearFilters}>
                 Clear Filters
               </Button>
             </div>
@@ -348,17 +321,21 @@ function ImpactStorePageContent() {
             <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filteredItems.map((item, index) => {
                 const productId = item.id;
+                const price =
+                  typeof item.price === 'number' ? item.price : 0;
+                const stockQuantity =
+                  typeof item.stockQuantity === 'number'
+                    ? item.stockQuantity
+                    : 0;
 
                 return (
-                  <RevealItem
-                    key={productId ?? item.slug ?? index}
-                  >
+                  <RevealItem key={productId ?? item.slug ?? index}>
                     <Card className="group flex h-full flex-col overflow-hidden rounded-2xl border-none bg-white shadow-lg transition-all duration-500 hover:shadow-2xl">
                       <div className="relative h-64 overflow-hidden bg-muted">
                         <Image
                           src={
                             item.imageUrl ||
-                            "/images/impact-store/dibf-hope-tshirt.svg"
+                            '/images/impact-store/dibf-hope-tshirt.svg'
                           }
                           alt={item.name}
                           fill
@@ -380,8 +357,7 @@ function ImpactStorePageContent() {
                           </CardTitle>
 
                           <span className="shrink-0 font-bold text-primary">
-                            {item.currency}{" "}
-                            {item.price.toFixed(2)}
+                            {item.currency} {price.toFixed(2)}
                           </span>
                         </div>
                       </CardHeader>
@@ -409,10 +385,7 @@ function ImpactStorePageContent() {
                       <CardFooter className="p-6 pt-0">
                         <Button
                           type="button"
-                          disabled={
-                            !productId ||
-                            item.stockQuantity <= 0
-                          }
+                          disabled={!productId || stockQuantity <= 0}
                           onClick={() => {
                             if (!productId) {
                               return;
@@ -421,7 +394,7 @@ function ImpactStorePageContent() {
                             addItem({
                               id: productId,
                               name: item.name,
-                              price: item.price,
+                              price,
                               imageUrl: item.imageUrl,
                               quantity: 1,
                             });
@@ -430,9 +403,7 @@ function ImpactStorePageContent() {
                         >
                           <ShoppingBag className="h-4 w-4" />
 
-                          {item.stockQuantity > 0
-                            ? "Add to Cart"
-                            : "Out of Stock"}
+                          {stockQuantity > 0 ? 'Add to Cart' : 'Out of Stock'}
                         </Button>
                       </CardFooter>
                     </Card>
@@ -453,9 +424,8 @@ function ImpactStorePageContent() {
               </h2>
 
               <p className="max-w-xl text-lg text-white/70">
-                When you shop through the DIBF Impact
-                Store, you are directly supporting
-                initiatives that contribute to:
+                When you shop through the DIBF Impact Store, you are directly
+                supporting initiatives that contribute to:
               </p>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -466,9 +436,7 @@ function ImpactStorePageContent() {
                   >
                     <Heart className="h-5 w-5 shrink-0 text-accent" />
 
-                    <span className="text-sm font-medium">
-                      {area}
-                    </span>
+                    <span className="text-sm font-medium">{area}</span>
                   </div>
                 ))}
               </div>
@@ -476,23 +444,17 @@ function ImpactStorePageContent() {
 
             <div className="space-y-8 rounded-3xl border border-white/10 bg-white/5 p-10 text-center">
               <h3 className="font-headline text-3xl font-bold">
-                Every item purchased contributes toward
-                initiatives supported by DIBF.
+                Every item purchased contributes toward initiatives supported by
+                DIBF.
               </h3>
 
               <p className="leading-relaxed text-white/60">
-                The DIBF Impact Store represents a
-                culture of purpose, awareness, and shared
-                responsibility, where products become
-                conversation starters and tools for
-                positive change.
+                The DIBF Impact Store represents a culture of purpose,
+                awareness, and shared responsibility, where products become
+                conversation starters and tools for positive change.
               </p>
 
-              <Button
-                asChild
-                size="lg"
-                className="h-14 px-10 font-bold"
-              >
+              <Button asChild size="lg" className="h-14 px-10 font-bold">
                 <Link href="/contact?type=bulk-inquiry">
                   Bulk &amp; Corporate Orders
                 </Link>
@@ -520,24 +482,14 @@ function ImpactStoreLoadingState() {
 
       <section className="container mx-auto px-4 py-20">
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {Array.from({ length: 8 }).map(
-            (_, index) => (
-              <div
-                key={index}
-                className="h-96 animate-pulse rounded-2xl bg-white shadow-sm"
-              />
-            ),
-          )}
+          {Array.from({ length: 8 }).map((_, index) => (
+            <div
+              key={index}
+              className="h-96 animate-pulse rounded-2xl bg-white shadow-sm"
+            />
+          ))}
         </div>
       </section>
     </main>
-  );
-}
-
-export default function ImpactStorePage() {
-  return (
-    <Suspense fallback={<ImpactStoreLoadingState />}>
-      <ImpactStorePageContent />
-    </Suspense>
   );
 }

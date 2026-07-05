@@ -1,7 +1,57 @@
 
+import { sitePagesSeed } from "./site-pages.seed";
 import type { SeedRegistryEntry } from "./seed-types";
 
+function getSitePageSeedId(
+  page: {
+    id?: unknown;
+    slug?: unknown;
+    title?: unknown;
+  },
+  index: number
+): string {
+  if (typeof page.slug === "string" && page.slug.trim().length > 0) {
+    return page.slug.trim();
+  }
+
+  if (typeof page.id === "string" && page.id.trim().length > 0) {
+    return page.id.trim();
+  }
+
+  if (typeof page.title === "string" && page.title.trim().length > 0) {
+    return page.title
+      .trim()
+      .toLowerCase()
+      .replace(/^\/+|\/+$/g, "")
+      .replace(/\//g, "-")
+      .replace(/[^a-z0-9-]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
+  }
+
+  return `site-page-${index + 1}`;
+}
+
 export const SEED_REGISTRY: SeedRegistryEntry[] = [
+  {
+    key: "sitePages",
+    collectionPath: "sitePages",
+    category: "Content",
+    label: "Site Pages",
+    supportsContentSeed: true,
+    supportsSchemaSeed: false,
+    documents: sitePagesSeed.map((page, index) => {
+      const id = getSitePageSeedId(page, index);
+
+      return {
+        ...page,
+        slug: typeof page.slug === "string" && page.slug.trim().length > 0
+          ? page.slug.trim()
+          : id,
+        _id: id,
+      };
+    }),
+  },
   // Global Settings
   {
     key: "siteSettings",

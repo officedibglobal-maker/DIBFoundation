@@ -1,60 +1,71 @@
-'use client';
 
+import { getSitePageBySlug } from "@/lib/firebase/firestore/getSitePageBySlug";
+import { SitePageRenderer } from "@/components/site/SitePageRenderer";
 import { NextPage } from 'next';
-import { BookText, Lightbulb, Users } from 'lucide-react';
+import { BookOpen, Monitor, HeartPulse, Users } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
-const PublicHealthEducationPage: NextPage = () => (
-  <div className="container mx-auto px-4 py-12">
-    <div className="text-center mb-12">
-      <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
-        Public Health Education & Awareness
-      </h1>
-      <p className="mt-4 text-lg text-slate-600 max-w-3xl mx-auto">
-        Access to information remains one of the most powerful tools for improving health outcomes. DIBF champions public health education and awareness initiatives that encourage informed decision making and healthier communities.
-      </p>
-    </div>
+const PublicHealthEducationPage: NextPage = async () => {
+  const page = await getSitePageBySlug("what-we-do-public-health-education");
 
-    <div className="grid md:grid-cols-3 gap-8 text-center">
-      <div className="bg-white p-8 rounded-xl shadow-md">
-        <Lightbulb className="mx-auto h-12 w-12 text-primary mb-4" />
-        <h2 className="text-2xl font-bold mb-2">Informed Decision Making</h2>
-        <p className="text-slate-700">
-          We empower individuals and families with accurate, accessible health information, enabling them to make confident choices about their wellbeing.
-        </p>
-      </div>
-      <div className="bg-white p-8 rounded-xl shadow-md">
-        <Users className="mx-auto h-12 w-12 text-primary mb-4" />
-        <h2 className="text-2xl font-bold mb-2">Healthier Communities</h2>
-        <p className="text-slate-700">
-          Our programs foster a culture of health awareness, addressing public health challenges through education and community engagement.
-        </p>
-      </div>
-      <div className="bg-white p-8 rounded-xl shadow-md">
-        <BookText className="mx-auto h-12 w-12 text-primary mb-4" />
-        <h2 className="text-2xl font-bold mb-2">Greater Understanding</h2>
-        <p className="text-slate-700">
-          We work to increase the understanding of complex health issues, from chronic diseases to mental health, reducing stigma and promoting support.
-        </p>
-      </div>
-    </div>
+  if (page && page.status === "published") {
+    return <SitePageRenderer page={page} />;
+  }
 
-    <div className="mt-16 text-center bg-slate-50 p-10 rounded-xl">
-        <h2 className="text-3xl font-bold mb-4">Explore Our Resources</h2>
-        <p className="text-slate-700 max-w-3xl mx-auto mb-6">
-            Discover articles, research, and publications from DIBF to learn more about our work and key health topics.
+  return (
+    <div className="container mx-auto px-4 py-12">
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
+          Public Health Education
+        </h1>
+        <p className="mt-4 text-lg text-slate-600 max-w-3xl mx-auto">
+          At DIBF, we believe that knowledge is key to building healthier communities. Our Public Health Education initiatives are designed to empower individuals and communities with the information and skills they need to make informed health decisions, prevent disease, and promote wellbeing for all.
         </p>
-        <div className="flex justify-center gap-4">
-            <Button asChild>
-                <Link href="/publications">View Publications</Link>
-            </Button>
-            <Button variant="outline" asChild>
-                <Link href="/news/articles">Read Articles</Link>
-            </Button>
+      </div>
+
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 text-center">
+        <div className="bg-white p-6 rounded-xl shadow-md">
+          <BookOpen className="mx-auto h-10 w-10 text-primary mb-4" />
+          <h2 className="text-xl font-bold mb-2">Health Literacy</h2>
+          <p className="text-slate-700">
+            We create and distribute easy-to-understand health materials to improve health literacy and empower individuals to take control of their health.
+          </p>
         </div>
+        <div className="bg-white p-6 rounded-xl shadow-md">
+          <Monitor className="mx-auto h-10 w-10 text-primary mb-4" />
+          <h2 className="text-xl font-bold mb-2">Digital Health Education</h2>
+          <p className="text-slate-700">
+            Leveraging technology, we provide accessible online resources, webinars, and social media campaigns to reach a wider audience with vital health information.
+          </p>
+        </div>
+        <div className="bg-white p-6 rounded-xl shadow-md">
+          <HeartPulse className="mx-auto h-10 w-10 text-primary mb-4" />
+          <h2 className="text-xl font-bold mb-2">Disease Prevention</h2>
+          <p className="text-slate-700">
+            Our programs focus on preventing both communicable and non-communicable diseases through awareness campaigns and promoting healthy lifestyles.
+          </p>
+        </div>
+        <div className="bg-white p-6 rounded-xl shadow-md">
+          <Users className="mx-auto h-10 w-10 text-primary mb-4" />
+          <h2 className="text-xl font-bold mb-2">Community Workshops</h2>
+          <p className="text-slate-700">
+            We conduct interactive workshops on topics such as nutrition, hygiene, and mental health, tailored to the specific needs of each community.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-16 text-center">
+        <h2 className="text-3xl font-bold mb-4">Get Involved</h2>
+        <p className="text-slate-700 max-w-2xl mx-auto mb-6">
+          Whether you are a health professional, a student, or a passionate individual, you can contribute to our mission. Your support can help us expand our reach and empower more communities through health education.
+        </p>
+        <Button asChild size="lg">
+          <Link href="/get-involved">Support Our Mission</Link>
+        </Button>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default PublicHealthEducationPage;

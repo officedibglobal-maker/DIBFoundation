@@ -12,6 +12,7 @@ import type { SeedResult } from '@/lib/seed/seed-types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // Group collections by category for the dropdown
 const groupedCollections = SEED_REGISTRY.reduce((acc, entry) => {
@@ -29,8 +30,9 @@ export function DataSeederClient() {
   const [isRunning, setIsRunning] = useState(false);
   const [mode, setMode] = useState<'dry-run' | 'seed'>('dry-run');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [overwrite, setOverwrite] = useState(false);
 
-  const handleSeed = async () => {
+  const handleSeed = async (collectionKey?: string) => {
     setIsRunning(true);
     setResults([]);
     setErrorMessage(null);
@@ -49,7 +51,8 @@ export function DataSeederClient() {
     try {
       const seedResults = await seedFirestore(firestore, {
         mode,
-        collection: selectedCollection === 'all' ? undefined : selectedCollection,
+        collection: collectionKey || (selectedCollection === 'all' ? undefined : selectedCollection),
+        overwrite
       });
       setResults(seedResults);
     } catch (e: any) {
@@ -71,6 +74,26 @@ export function DataSeederClient() {
 
   return (
     <div className="space-y-6">
+        <Card>
+            <CardHeader>
+                <CardTitle>Seed Public Site Pages</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col md:flex-row items-center gap-4">
+                <Button onClick={() => handleSeed('sitePages')} disabled={isRunning || status !== 'ready' || !db}>
+                    Seed Public Site Pages
+                </Button>
+                <div className="flex items-center space-x-2">
+                    <Checkbox id="overwrite" checked={overwrite} onCheckedChange={(checked) => setOverwrite(Boolean(checked))} />
+                    <label
+                        htmlFor="overwrite"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                        Overwrite existing content
+                    </label>
+                </div>
+            </CardContent>
+        </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Firestore Data Seeder</CardTitle>
@@ -106,7 +129,7 @@ export function DataSeederClient() {
           </Select>
           
           <Button
-            onClick={handleSeed}
+            onClick={() => handleSeed()}
             disabled={isRunning || status !== 'ready' || !db}
             className="w-full md:w-auto"
           >

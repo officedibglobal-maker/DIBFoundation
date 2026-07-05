@@ -1,55 +1,64 @@
-'use client';
 
+import { getSitePageBySlug } from "@/lib/firebase/firestore/getSitePageBySlug";
+import { SitePageRenderer } from "@/components/site/SitePageRenderer";
 import { NextPage } from 'next';
 import { Heart, Users, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
-const MentalHealthPage: NextPage = () => (
-  <div className="container mx-auto px-4 py-12">
-    <div className="text-center mb-12">
-      <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
-        Mental Health & Youth Wellbeing
-      </h1>
-      <p className="mt-4 text-lg text-slate-600 max-w-3xl mx-auto">
-        DIBF supports conversations and initiatives that promote mental wellbeing, resilience, and inclusion. Stronger communities are built when individuals are empowered to thrive emotionally, socially, and mentally.
-      </p>
-    </div>
+const MentalHealthPage: NextPage = async () => {
+  const page = await getSitePageBySlug("what-we-do-mental-health-wellbeing");
 
-    <div className="grid md:grid-cols-3 gap-8 text-center">
-      <div className="bg-white p-8 rounded-xl shadow-md">
-        <MessageSquare className="mx-auto h-12 w-12 text-primary mb-4" />
-        <h2 className="text-2xl font-bold mb-2">Promoting Conversations</h2>
-        <p className="text-slate-700">
-          We work to break the stigma surrounding mental health by creating safe spaces for open dialogue and sharing personal stories.
-        </p>
-      </div>
-      <div className="bg-white p-8 rounded-xl shadow-md">
-        <Heart className="mx-auto h-12 w-12 text-primary mb-4" />
-        <h2 className="text-2xl font-bold mb-2">Fostering Resilience</h2>
-        <p className="text-slate-700">
-          Our initiatives provide young people with tools and resources to build emotional resilience and navigate life's challenges.
-        </p>
-      </div>
-      <div className="bg-white p-8 rounded-xl shadow-md">
-        <Users className="mx-auto h-12 w-12 text-primary mb-4" />
-        <h2 className="text-2xl font-bold mb-2">Building Inclusive Communities</h2>
-        <p className="text-slate-700">
-          We advocate for inclusive environments where every young person feels seen, heard, and supported.
-        </p>
-      </div>
-    </div>
+  if (page && page.status === "published") {
+    return <SitePageRenderer page={page} />;
+  }
 
-    <div className="mt-16 text-center">
-        <h2 className="text-3xl font-bold mb-4">Get Involved</h2>
+  return (
+    <div className="container mx-auto px-4 py-12">
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
+          Mental Health & Wellbeing
+        </h1>
+        <p className="mt-4 text-lg text-slate-600 max-w-3xl mx-auto">
+          DIBF is committed to promoting mental health and wellbeing in communities through awareness, advocacy, and support for accessible, culturally sensitive mental healthcare. We believe that mental health is a fundamental component of overall health and human dignity.
+        </p>
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-8 text-center">
+        <div className="bg-white p-8 rounded-xl shadow-md">
+          <Heart className="mx-auto h-12 w-12 text-primary mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Promoting Awareness</h2>
+          <p className="text-slate-700">
+            We work to reduce stigma and increase understanding of mental health through community campaigns, educational workshops, and open conversations.
+          </p>
+        </div>
+        <div className="bg-white p-8 rounded-xl shadow-md">
+          <Users className="mx-auto h-12 w-12 text-primary mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Community-Centered Support</h2>
+          <p className="text-slate-700">
+            Our approach is rooted in community. We support initiatives that provide culturally relevant mental health resources and create safe spaces for dialogue and healing.
+          </p>
+        </div>
+        <div className="bg-white p-8 rounded-xl shadow-md">
+          <MessageSquare className="mx-auto h-12 w-12 text-primary mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Advocacy for Accessible Care</h2>
+          <p className="text-slate-700">
+            We advocate for policies and programs that improve access to quality mental healthcare for all, particularly in underserved communities.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-16 text-center bg-slate-50 p-10 rounded-xl">
+        <h2 className="text-3xl font-bold mb-4">Join the Conversation</h2>
         <p className="text-slate-700 max-w-3xl mx-auto mb-6">
-            Support our mission to promote mental health and wellbeing for youth in our communities.
+          Your voice matters in the movement for mental health. Get involved to help us create a world where everyone has the support they need to thrive.
         </p>
-        <Button asChild>
-            <Link href="/give">Donate Now</Link>
+        <Button asChild size="lg">
+          <Link href="/get-involved">Support Our Work</Link>
         </Button>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default MentalHealthPage;

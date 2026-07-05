@@ -39,6 +39,7 @@ const navGroups = [
             { href: "/admin/events", label: "Events", icon: Calendar },
             { href: "/admin/team", label: "Team Members", icon: Users },
             { href: "/admin/publications", label: "Publications", icon: FileText },
+            { href: "/admin/site-pages", label: "Site Pages", icon: FileText },
         ]
     },
     {

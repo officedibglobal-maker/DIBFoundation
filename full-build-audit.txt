@@ -1,0 +1,93 @@
+===== TypeScript full check =====
+
+===== Old Next.js 15 params typing =====
+
+===== Any direct params.id usage =====
+
+===== Invalid SitePage/firestore imports =====
+src/components/admin/SitePageForm.tsx:12:import { SitePageSchema } from "@/lib/models/site-pages";
+src/components/admin/SitePageForm.tsx:15:  onSubmit: (values: z.infer<typeof SitePageSchema>) => void;
+src/components/admin/SitePageForm.tsx:16:  defaultValues?: z.infer<typeof SitePageSchema>;
+src/components/admin/SitePageForm.tsx:20:  const form = useForm<z.infer<typeof SitePageSchema>>({
+src/components/admin/SitePageForm.tsx:21:    resolver: zodResolver(SitePageSchema),
+src/lib/models/site-pages.ts:45:export const SitePageSchema = z
+src/lib/models/site-pages.ts:67:export type SitePage = z.infer<typeof SitePageSchema>;
+src/app/admin/site-pages/[id]/edit/page.tsx:3:import { getSitePageById } from "@/lib/firebase/firestore";
+src/app/admin/site-pages/[id]/edit/EditSitePageClient.tsx:6:import { SitePage, SitePageSchema } from "@/lib/models/site-pages";
+src/app/admin/site-pages/[id]/edit/EditSitePageClient.tsx:17:  const onSubmit = async (values: z.infer<typeof SitePageSchema>) => {
+src/app/admin/site-pages/new/page.tsx:6:import { SitePageSchema } from "@/lib/models/site-pages";
+src/app/admin/site-pages/new/page.tsx:13:  const onSubmit = async (values: z.infer<typeof SitePageSchema>) => {
+src/app/api/site-pages/[id]/route.ts:7:} from "@/lib/firebase/firestore";
+src/app/api/site-pages/[id]/route.ts:8:import { SitePageSchema } from "@/lib/models/site-pages";
+src/app/api/site-pages/[id]/route.ts:45:    const parsed = SitePageSchema.safeParse(json);
+src/app/api/site-pages/route.ts:3:import { createSitePage, getSitePages } from "@/lib/firebase/firestore";
+src/app/api/site-pages/route.ts:4:import { SitePageSchema } from "@/lib/models/site-pages";
+src/app/api/site-pages/route.ts:24:    const parsed = SitePageSchema.safeParse(json);
+
+===== Firestore converter overload risks =====
+src/lib/models/site-pages.ts:5:  type FirestoreDataConverter,
+src/lib/models/site-pages.ts:92:export const sitePageConverter: FirestoreDataConverter<SitePage> = {
+src/lib/firestore/converters.ts:4:  type FirestoreDataConverter,
+src/lib/firestore/converters.ts:25:  toFirestore(data: WithFieldValue<T>): DocumentData {
+src/lib/firestore/converters.ts:56:export const newsletterCampaignConverter: FirestoreDataConverter<NewsletterCampaign> =
+src/lib/firestore/converters.ts:58:    toFirestore(data: WithFieldValue<NewsletterCampaign>): DocumentData {
+src/lib/firestore/converters.ts:124:export const sitePageConverter: FirestoreDataConverter<SitePage> = {
+
+===== Seed _id risks =====
+src/lib/seed/seed-registry.ts:51:        _id: id,
+src/lib/seed/seed-registry.ts:184:        { _id: "initiative-3", title: "Clean Water & Sanitation Project", summary: "Improving health outcomes by providing access to clean water.", imageUrl: "/images/initiatives/3.jpg", order: 3, status: "published" },
+src/lib/seed/seed-registry.ts:187:        { _id: "initiative-6", title: "Community Health Education", summary: "Empowering individuals with knowledge to lead healthier lives.", imageUrl: "/images/initiatives/6.jpg", order: 6, status: "published" },
+src/lib/seed/seed-registry.ts:223:        { _id: "area-6", title: "Emergency Response", summary: "Providing immediate medical aid during crises.", iconUrl: "/icons/focus/emergency.svg", order: 6 },
+src/lib/seed/seed-registry.ts:236:        { _id: "story-1", title: "A New Clinic Brings Hope to Rural Village", summary: "The opening of the new clinic in a remote village has brought access to quality healthcare for the first time.", content: "<p>The opening of the new clinic in a remote village has brought access to quality healthcare for the first time. The clinic is equipped with modern medical equipment and staffed by trained healthcare professionals. The clinic provides a range of services, including primary care, maternal and child health, and emergency care. The clinic has already made a significant impact on the health and well-being of the community.</p>", imageUrl: "/images/stories/1.jpg", featured: true, status: "published" },
+src/lib/seed/seed-registry.ts:237:        { _id: "story-2", title: "Life-Saving Skills for Local Midwives", summary: "A training program empowers midwives with the knowledge to handle birth complications.", content: "<p>A training program empowers midwives with the knowledge to handle birth complications, drastically reducing maternal and infant mortality rates in the region.</p>", imageUrl: "/images/stories/2.jpg", featured: false, status: "published" },
+src/lib/seed/seed-registry.ts:239:        { _id: "story-4", title: "Mobile Clinic Reaches the Unreachable", summary: "Our mobile health clinic brings vital medical services to remote and isolated populations.", content: "<p>For many, our mobile clinic is the only source of healthcare. We provide vaccinations, check-ups, and essential medicines to those who would otherwise go without.</p>", imageUrl: "/images/stories/4.jpg", featured: false, status: "published" },
+src/lib/seed/seed-registry.ts:354:        { _id: "partner-4", name: "Wellness Worldwide", logoUrl: "/images/partners/4.png", website: "#" },
+src/lib/seed/seed-registry.ts:371:        { _id: "faq-5", question: "How are you funded?", answer: "We are funded by individual donors, grants, and corporate sponsorships.", category: "General" },
+src/lib/seed/seed-registry.ts:388:        { _id: "item-2", name: "Midwife Training", price: 100, category: "cat-2" },
+src/lib/seed/seed-registry.ts:398:        { _id: "item-12", name: "Basic First Aid Kit", price: 15, category: "cat-1" },
+src/lib/seed/seed-registry.ts:410:        { _id: "cat-1", name: "Medical Supplies", description: "Provide essential medical supplies."}, 
+src/lib/seed/seed-registry.ts:415:        { _id: "cat-6", name: "Emergency Response", description: "Provide aid during a crisis."},
+src/lib/seed/seed-registry.ts:463:        { _id: "campaign-1", title: "Winter Relief Fund", goal: 50000, description: "Help us provide warm clothing, blankets, and medical care during the harsh winter months.", status: "active" },
+src/lib/seed/seed-registry.ts:465:        { _id: "campaign-3", title: "Maternal Health Matters", goal: 100000, description: "Support our initiative to provide safe births and essential care for mothers and newborns.", status: "completed" },
+src/lib/seed/seed-registry.ts:588:        { _id: "slide-1", title: "Empowering Health, Transforming Lives", subtitle: "Join us in our mission to bring quality healthcare to underserved communities.", ctaText: "Learn More", ctaUrl: "/about-us", imageUrl: "/images/hero/1.jpg", status: "published", order: 1 },
+src/lib/seed/seed-registry.ts:589:        { _id: "slide-2", title: "Building a Healthier Future, Together", subtitle: "Your support helps us build clinics, train healthcare workers, and provide essential medical supplies.", ctaText: "Donate Now", ctaUrl: "/give", imageUrl: "/images/hero/2.jpg", status: "published", order: 2 },
+src/lib/seed/seed-registry.ts:590:        { _id: "slide-3", title: "Every Child Deserves a Healthy Start", subtitle: "We are dedicated to improving maternal and child health in vulnerable populations.", ctaText: "Our Impact", ctaUrl: "/impact", imageUrl: "/images/hero/3.jpg", status: "published", order: 3 },
+
+===== Invalid custom form props risk =====
+src/app/admin/events/[id]/edit/page.tsx:129:        <AdminFormActions isSubmitting={isSubmitting} onCancel={() => router.back()} />
+src/app/admin/events/new/page.tsx:101:        <AdminFormActions isSubmitting={isSubmitting} onCancel={() => router.back()} />
+src/components/admin/advertisers/AdvertiserForm.tsx:354:          isSubmitting={form.formState.isSubmitting}
+
+===== Impact store type risks =====
+src/app/impact-store/page.tsx:130:        categorySlug?: string;
+src/app/impact-store/page.tsx:131:        categoryId?: string;
+src/app/impact-store/page.tsx:137:      const categorySlug =
+src/app/impact-store/page.tsx:138:        typeof productCategory.categorySlug === 'string'
+src/app/impact-store/page.tsx:139:          ? productCategory.categorySlug.toLowerCase()
+src/app/impact-store/page.tsx:142:      const categoryId =
+src/app/impact-store/page.tsx:143:        typeof productCategory.categoryId === 'string'
+src/app/impact-store/page.tsx:144:          ? productCategory.categoryId.toLowerCase()
+src/app/impact-store/page.tsx:157:        categorySlug === selected ||
+src/app/impact-store/page.tsx:158:        categoryId === selected ||
+src/app/impact-store/page.tsx:390:                          disabled={!productId || item.stockQuantity <= 0}
+src/app/impact-store/page.tsx:408:                          {item.stockQuantity > 0
+src/components/admin/ProductForm.tsx:67:    categoryId: initialProduct?.categoryId ?? "",
+src/components/admin/ProductForm.tsx:71:    stockQuantity: initialProduct?.stockQuantity ?? 0,
+src/components/admin/ProductForm.tsx:139:  function handleCategoryChange(categoryId: string) {
+src/components/admin/ProductForm.tsx:141:      (item) => item.id === categoryId,
+src/components/admin/ProductForm.tsx:146:      categoryId,
+src/components/admin/ProductForm.tsx:198:    if (!product.categoryId) {
+src/components/admin/ProductForm.tsx:206:    if (product.stockQuantity < 0) {
+src/components/admin/ProductForm.tsx:324:              value={product.categoryId}
+src/components/admin/ProductForm.tsx:333:                  const categoryId = category.id;
+src/components/admin/ProductForm.tsx:335:                  if (!categoryId) {
+src/components/admin/ProductForm.tsx:341:                      key={categoryId}
+src/components/admin/ProductForm.tsx:342:                      value={categoryId}
+src/components/admin/ProductForm.tsx:424:          id="stockQuantity"
+src/components/admin/ProductForm.tsx:427:          value={String(product.stockQuantity)}
+src/components/admin/ProductForm.tsx:432:              "stockQuantity",
+src/types/impact-store-product.ts:13:    categoryId: string;
+src/types/impact-store-product.ts:17:    stockQuantity: number;
+src/types/impact-store.ts:10:  categoryId: string;
+src/types/impact-store.ts:18:  stockQuantity: number;
+src/types/impact-store.ts:120:  stockQuantity: number;

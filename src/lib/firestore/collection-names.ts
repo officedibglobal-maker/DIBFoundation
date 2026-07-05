@@ -45,4 +45,5 @@ export const COLLECTIONS = {
   siteFooter: "siteFooter",
   seoSettings: "seoSettings",
   mediaLibrary: "mediaLibrary",
+  sitePages: "sitePages",
 } as const;

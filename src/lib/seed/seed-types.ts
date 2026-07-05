@@ -1,9 +1,9 @@
-
 import type { FieldValue } from "firebase/firestore";
 
 export interface SeedOptions {
   mode: "dry-run" | "seed";
   collection?: string;
+  overwrite?: boolean;
 }
 
 export interface SeedResult {
